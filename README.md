@@ -24,24 +24,19 @@ chmod +x runfastapi.sh
 ```
 
 ## Работа с программой
-Вкладка терминала с fastapi должна оставаться открытой. После этого можно открыть новую вкладку и писать следующее в зависимости от цели:
-1. Проверка чата:
+Вкладка терминала с fastapi должна оставаться открытой. После этого можно открыть новую вкладку и запустить следующие скрипты в зависимости от цели:
+1. Общение с моделью:
 
 ```
-curl -X 'POST' 'http://127.0.0.1:8000/chat' \
-     -H 'Content-Type: application/json' \
-     -d '{"question": "Привет, как дела?", "session_id": "", "model": "denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m:latest"}'
+./chat.sh
 ```
 2. Загрузка своего файла:
 
 ```
-curl -X 'POST' \
-  'http://127.0.0.1:8000/upload-doc' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: multipart/form-data' \
-  -F 'file=@твой_файл.pdf'
+./upload.sh мой_файл.pdf
+
 ```
-Если успешно загрузился файл, ответ будет таким:
+Если успешно загрузился файл, ответ будет каким-то таким:
 ```
 {
   "message": "File твой_файл.pdf has been successfully uploaded and indexed.",
@@ -53,13 +48,8 @@ curl -X 'POST' \
 ```
 curl -X 'GET' 'http://127.0.0.1:8000/list-docs'
 ```
-5. Удалить загруженный файл:
+5. Удалить загруженный файл (c указанием индекса файла):
 ```
-curl -X 'POST' \
-  'http://127.0.0.1:8000/delete-doc' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "file_id": 1
-  }'
+./delete.sh 1
 ```
 
