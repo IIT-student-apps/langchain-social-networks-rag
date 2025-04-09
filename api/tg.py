@@ -5,10 +5,12 @@ from telegram import Update, Document
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from langchain_utils import get_rag_chain
 from chroma_utils import index_document_to_chroma as index_document  # Функция для индексирования файла в ChromaDB
+from chroma_utils import list_indexed_files
+from chroma_utils import delete_doc_from_chroma
+from dotenv import load_dotenv
 
-
-# Настройки
-TELEGRAM_TOKEN = "7898053052:AAHsk1T7QlW50GLK2pPXc0ZJ0UvoF3eBfhk"
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 DOWNLOAD_FOLDER = "/home/renat/KP/rag/RAG/rag_files"
 
 # Загружаем RAG-модель
@@ -54,16 +56,50 @@ async def handle_document(update: Update, context: CallbackContext):
         await update.message.reply_text(f"Ошибка при обработке файла: {str(e)}")
 
 
+from telegram.constants import ParseMode  # импорт, если ещё не добавил
+
+async def list_files(update: Update, context: CallbackContext):
+    file_info = list_indexed_files()
+    if not file_info:
+        await update.message.reply_text("Нет загруженных файлов.")
+        return
+
+    message = "📂 *Загруженные файлы:*\n"
+    for fid, count in file_info.items():
+        # Экранируем спецсимволы: \ нужно для MarkdownV2
+        message += f"• file\\_id: `{str(fid)}` — {count} чанков\n"
+
+    await update.message.reply_text(message)
+
+
+
+async def delete(update: Update, context: CallbackContext):
+    try:
+        file_id = int(context.args[0])
+        result = delete_doc_from_chroma(file_id)
+        if result:
+            await update.message.reply_text(f"Документы с file_id {file_id} удалены.")
+        else:
+            await update.message.reply_text(f"Не удалось удалить документы с file_id {file_id}.")
+    except (IndexError, ValueError):
+        await update.message.reply_text("Пожалуйста, укажи file_id после команды. Пример:\n/delete 123456789")
+
 def main():
     """Запуск бота"""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
+    # Команды
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("list", list_files))
+    app.add_handler(CommandHandler("delete", delete))  # <-- добавляем сюда
+
+    # Обработка сообщений
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))  # Обрабатываем документы
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))  # Обработка загружаемых файлов
 
     print("Бот запущен...")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()

@@ -54,3 +54,20 @@ def delete_doc_from_chroma(file_id: int):
         return False
 
 
+def list_indexed_files():
+    try:
+        # Получаем все документы
+        docs = vectorstore.get()
+        metadata_list = docs.get("metadatas", [])
+
+        file_info = {}
+        for meta in metadata_list:
+            fid = meta.get("file_id", "unknown")
+            file_info[fid] = file_info.get(fid, 0) + 1
+
+        return file_info
+    except Exception as e:
+        print(f"Error listing files: {e}")
+        return {}
+
+
