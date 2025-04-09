@@ -8,6 +8,10 @@ from chroma_utils import index_document_to_chroma as index_document  # Функ�
 from chroma_utils import list_indexed_files
 from chroma_utils import delete_doc_from_chroma
 from dotenv import load_dotenv
+from db_utils import get_chat_history
+from db_utils import insert_application_logs, get_chat_history
+
+
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -19,6 +23,8 @@ BASE_DIR = os.path.dirname(CURRENT_DIR)
 
 # Путь к папке rag_files, которая на уровень выше
 DOWNLOAD_FOLDER = os.path.join(BASE_DIR, "rag_files")
+# Создаём, если не существует
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 # Загружаем RAG-модель
 rag_chain = get_rag_chain()
@@ -33,13 +39,25 @@ async def start(update: Update, context: CallbackContext):
     await update.message.reply_text("Привет! Загрузи документ или задай вопрос, и я помогу!")
 
 async def chat(update: Update, context: CallbackContext):
-    """Обработчик текстовых сообщений"""
     user_text = update.message.text
+    session_id = str(update.effective_user.id)
 
-    # Запрашиваем ответ через RAG
-    response = rag_chain.invoke({"input": user_text, "chat_history": []})
+    # Получаем историю чата из базы
+    chat_history = get_chat_history(session_id)
 
-    await update.message.reply_text(response["answer"])
+    # Генерируем ответ
+    response = rag_chain.invoke({
+        "input": user_text,
+        "chat_history": chat_history
+    })
+    answer = response["answer"]
+
+    # Отправляем ответ пользователю
+    await update.message.reply_text(answer)
+
+    # Логируем в БД
+    insert_application_logs(session_id, user_text, answer, model="telegram")
+
 
 async def handle_document(update: Update, context: CallbackContext):
     """Обработчик загруженных документов"""
@@ -91,6 +109,35 @@ async def delete(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         await update.message.reply_text("Пожалуйста, укажи file_id после команды. Пример:\n/delete 123456789")
 
+
+async def session_id_cmd(update: Update, context: CallbackContext):
+    session_id = str(update.effective_user.id)
+    await update.message.reply_text(f"🆔 Твой session_id: `{session_id}`")
+
+
+async def history(update: Update, context: CallbackContext):
+    session_id = str(update.effective_user.id)
+    history = get_chat_history(session_id)
+
+    if not history:
+        await update.message.reply_text("История пуста.")
+        return
+
+    message = f"💬 История:\n"
+    for msg in history[-10:]:  # последние 10 сообщений
+        role = "👤" if msg["role"] == "human" else "🤖"
+        content = msg["content"].strip()
+        message += f"{role} {content}\n"
+
+    # Дробим длинные сообщения
+    for chunk in split_message(message):
+        await update.message.reply_text(chunk)
+
+
+def split_message(text, max_length=4000):
+    """Делит длинное сообщение на части"""
+    return [text[i:i+max_length] for i in range(0, len(text), max_length)]
+
 def main():
     """Запуск бота"""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -98,11 +145,15 @@ def main():
     # Команды
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("list", list_files))
-    app.add_handler(CommandHandler("delete", delete))  # <-- добавляем сюда
+    app.add_handler(CommandHandler("delete", delete))  
+    app.add_handler(CommandHandler("history", history))
+    app.add_handler(CommandHandler("session_id", session_id_cmd))
+
 
     # Обработка сообщений
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))  # Обработка загружаемых файлов
+    
 
     print("Бот запущен...")
     app.run_polling()
