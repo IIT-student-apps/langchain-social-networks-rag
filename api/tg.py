@@ -11,7 +11,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-DOWNLOAD_FOLDER = "/home/renat/KP/rag/RAG/rag_files"
+# Путь к текущей папке, где лежит скрипт
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Поднимаемся на уровень выше
+BASE_DIR = os.path.dirname(CURRENT_DIR)
+
+# Путь к папке rag_files, которая на уровень выше
+DOWNLOAD_FOLDER = os.path.join(BASE_DIR, "rag_files")
 
 # Загружаем RAG-модель
 rag_chain = get_rag_chain()
