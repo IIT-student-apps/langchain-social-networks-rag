@@ -33,6 +33,7 @@ def index_document_to_chroma(file_path: str, file_id: int) -> bool:
         # Add metadata to each split
         for split in splits:
             split.metadata['file_id'] = file_id
+            split.metadata['filename'] = os.path.basename(file_path)
 
         vectorstore.add_documents(splits)
         return True
@@ -56,16 +57,17 @@ def delete_doc_from_chroma(file_id: int):
 
 def list_indexed_files():
     try:
-        # Получаем все документы
         docs = vectorstore.get()
         metadata_list = docs.get("metadatas", [])
 
         file_info = {}
         for meta in metadata_list:
             fid = meta.get("file_id", "unknown")
-            file_info[fid] = file_info.get(fid, 0) + 1
+            fname = meta.get("filename", "неизвестный_файл")
+            key = (fid, fname)
+            file_info[key] = file_info.get(key, 0) + 1
 
-        return file_info
+        return file_info  # → dict из (fid, filename): кол-во_чанков
     except Exception as e:
         print(f"Error listing files: {e}")
         return {}

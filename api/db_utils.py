@@ -71,6 +71,24 @@ def get_all_documents():
     conn.close()
     return [dict(doc) for doc in documents]
 
+
+
+def get_all_sessions_for_user(user_id_prefix: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT DISTINCT session_id 
+        FROM application_logs 
+        WHERE session_id LIKE ?
+        ORDER BY created_at DESC
+    ''', (f'{user_id_prefix}%',))
+    rows = cursor.fetchall()
+    conn.close()
+    return [row['session_id'] for row in rows]
+
+
 # Initialize the database tables
 create_application_logs()
 create_document_store()
+
+

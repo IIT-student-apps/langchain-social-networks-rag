@@ -1,6 +1,7 @@
 import logging
 import requests
 import os
+import uuid
 from telegram import Update, Document
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from langchain_utils import get_rag_chain
@@ -10,6 +11,7 @@ from chroma_utils import delete_doc_from_chroma
 from dotenv import load_dotenv
 from db_utils import get_chat_history
 from db_utils import insert_application_logs, get_chat_history
+from db_utils import get_all_sessions_for_user  
 
 
 
@@ -32,6 +34,9 @@ rag_chain = get_rag_chain()
 # Логирование
 logging.basicConfig(level=logging.INFO)
 
+
+user_sessions = {}
+
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 async def start(update: Update, context: CallbackContext):
@@ -39,23 +44,15 @@ async def start(update: Update, context: CallbackContext):
     await update.message.reply_text("Привет! Загрузи документ или задай вопрос, и я помогу!")
 
 async def chat(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    session_id = user_sessions.get(user_id, str(user_id))  # по умолчанию Telegram ID
+
     user_text = update.message.text
-    session_id = str(update.effective_user.id)
-
-    # Получаем историю чата из базы
     chat_history = get_chat_history(session_id)
-
-    # Генерируем ответ
-    response = rag_chain.invoke({
-        "input": user_text,
-        "chat_history": chat_history
-    })
+    response = rag_chain.invoke({"input": user_text, "chat_history": chat_history})
     answer = response["answer"]
 
-    # Отправляем ответ пользователю
     await update.message.reply_text(answer)
-
-    # Логируем в БД
     insert_application_logs(session_id, user_text, answer, model="telegram")
 
 
@@ -90,11 +87,11 @@ async def list_files(update: Update, context: CallbackContext):
         return
 
     message = "📂 *Загруженные файлы:*\n"
-    for fid, count in file_info.items():
-        # Экранируем спецсимволы: \ нужно для MarkdownV2
-        message += f"• file\\_id: `{str(fid)}` — {count} чанков\n"
+    for (fid, fname), count in file_info.items():
+        message += f"• `{fname}`\n  file\\_id: `{str(fid)}` — {count} чанков\n\n"
 
-    await update.message.reply_text(message)
+    await update.message.reply_text(message, parse_mode="MarkdownV2")
+
 
 
 
@@ -138,6 +135,40 @@ def split_message(text, max_length=4000):
     """Делит длинное сообщение на части"""
     return [text[i:i+max_length] for i in range(0, len(text), max_length)]
 
+
+
+async def newchat(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    new_session = str(uuid.uuid4())
+    user_sessions[user_id] = new_session
+    await update.message.reply_text(f"✅ Создан новый диалог.\nТекущий session_id: `{new_session}`")
+
+
+async def switch(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    try:
+        new_session_id = context.args[0]
+        user_sessions[user_id] = new_session_id
+        await update.message.reply_text(f"🔁 Переключено на сессию `{new_session_id}`")
+    except IndexError:
+        await update.message.reply_text("⚠️ Укажи session_id. Пример: /switch 8f1c...")
+
+
+async def sessions(update: Update, context: CallbackContext):
+    user_id = str(update.effective_user.id)
+    sessions = get_all_sessions_for_user(user_id)
+    if not sessions:
+        await update.message.reply_text("❌ У тебя пока нет сохранённых сессий.")
+        return
+
+    message = "📂 Твои сессии:\n"
+    for sid in sessions:
+        active_marker = " (текущая)" if user_sessions.get(update.effective_user.id) == sid else ""
+        message += f"• `{sid}`{active_marker}\n"
+
+    await update.message.reply_text(message, parse_mode="MarkdownV2")
+
+
 def main():
     """Запуск бота"""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -148,6 +179,10 @@ def main():
     app.add_handler(CommandHandler("delete", delete))  
     app.add_handler(CommandHandler("history", history))
     app.add_handler(CommandHandler("session_id", session_id_cmd))
+    app.add_handler(CommandHandler("newchat", newchat))
+    app.add_handler(CommandHandler("switch", switch))
+    app.add_handler(CommandHandler("sessions", sessions))
+
 
 
     # Обработка сообщений
