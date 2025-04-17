@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 from db_utils import get_chat_history
 from db_utils import insert_application_logs, get_chat_history
 from db_utils import get_all_sessions_for_user  
+from db_utils import delete_chat_history
+from db_utils import insert_application_logs
+#from telegram.constants import ParseMode  # импорт, если ещё не добавил
 
 
 
@@ -45,15 +48,21 @@ async def start(update: Update, context: CallbackContext):
 
 async def chat(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
-    session_id = user_sessions.get(user_id, str(user_id))  # по умолчанию Telegram ID
+    session_id = user_sessions.get(user_id, str(user_id))  # если нет сессии — используется Telegram ID
 
     user_text = update.message.text
     chat_history = get_chat_history(session_id)
-    response = rag_chain.invoke({"input": user_text, "chat_history": chat_history})
+
+    response = rag_chain.invoke({
+        "input": user_text,
+        "chat_history": chat_history
+    })
     answer = response["answer"]
 
     await update.message.reply_text(answer)
+
     insert_application_logs(session_id, user_text, answer, model="telegram")
+
 
 
 async def handle_document(update: Update, context: CallbackContext):
@@ -78,7 +87,7 @@ async def handle_document(update: Update, context: CallbackContext):
         await update.message.reply_text(f"Ошибка при обработке файла: {str(e)}")
 
 
-from telegram.constants import ParseMode  # импорт, если ещё не добавил
+
 
 async def list_files(update: Update, context: CallbackContext):
     file_info = list_indexed_files()
@@ -90,7 +99,7 @@ async def list_files(update: Update, context: CallbackContext):
     for (fid, fname), count in file_info.items():
         message += f"• `{fname}`\n  file\\_id: `{str(fid)}` — {count} чанков\n\n"
 
-    await update.message.reply_text(message, parse_mode="MarkdownV2")
+    await update.message.reply_text(message)
 
 
 
@@ -108,8 +117,10 @@ async def delete(update: Update, context: CallbackContext):
 
 
 async def session_id_cmd(update: Update, context: CallbackContext):
-    session_id = str(update.effective_user.id)
-    await update.message.reply_text(f"🆔 Твой session_id: `{session_id}`")
+    user_id = update.effective_user.id
+    session_id = user_sessions.get(user_id, str(user_id))  # <-- важно!
+    await update.message.reply_text(f"🆔 Текущий session_id:\n`{session_id}`", parse_mode="MarkdownV2")
+
 
 
 async def history(update: Update, context: CallbackContext):
@@ -139,9 +150,13 @@ def split_message(text, max_length=4000):
 
 async def newchat(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
-    new_session = str(uuid.uuid4())
-    user_sessions[user_id] = new_session
-    await update.message.reply_text(f"✅ Создан новый диалог.\nТекущий session_id: `{new_session}`")
+    new_session_id = f"{user_id}_{uuid.uuid4()}"
+    user_sessions[user_id] = new_session_id
+
+    insert_application_logs(new_session_id, "[system] новая сессия", "", "telegram")
+
+    await update.message.reply_text(
+        f"✨ Новый чат начат!\nТекущий session_id: `{new_session_id}`" )
 
 
 async def switch(update: Update, context: CallbackContext):
@@ -166,7 +181,15 @@ async def sessions(update: Update, context: CallbackContext):
         active_marker = " (текущая)" if user_sessions.get(update.effective_user.id) == sid else ""
         message += f"• `{sid}`{active_marker}\n"
 
-    await update.message.reply_text(message, parse_mode="MarkdownV2")
+    await update.message.reply_text(message)
+
+
+async def reset(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    session_id = user_sessions.get(user_id, str(user_id))
+
+    delete_chat_history(session_id)
+    await update.message.reply_text(f"🧹 История чата для session_id `{session_id}` удалена.")
 
 
 def main():
@@ -182,6 +205,7 @@ def main():
     app.add_handler(CommandHandler("newchat", newchat))
     app.add_handler(CommandHandler("switch", switch))
     app.add_handler(CommandHandler("sessions", sessions))
+    app.add_handler(CommandHandler("reset", reset))
 
 
 

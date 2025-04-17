@@ -87,6 +87,15 @@ def get_all_sessions_for_user(user_id_prefix: str):
     return [row['session_id'] for row in rows]
 
 
+
+def delete_chat_history(session_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM application_logs WHERE session_id = ?', (session_id,))
+    conn.commit()
+    conn.close()
+
+
 # Initialize the database tables
 create_application_logs()
 create_document_store()
