@@ -65,26 +65,45 @@ async def chat(update: Update, context: CallbackContext):
 
 
 
+import uuid
+
 async def handle_document(update: Update, context: CallbackContext):
     """Обработчик загруженных документов"""
-    document: Document = update.message.document
+    document = update.message.document
     file_id = document.file_id
+
+    # Получаем оригинальное имя или создаём своё
     file_name = document.file_name
+    if not file_name:
+        file_ext = os.path.splitext(document.mime_type)[1] or ".bin"
+        file_name = f"file_{file_id}{file_ext}"
+
+    # Нормализуем путь и избегаем дубликатов
+    base_name, ext = os.path.splitext(file_name)
+    clean_name = f"{base_name}{ext}"
+    file_path = os.path.join(DOWNLOAD_FOLDER, clean_name)
+
+    # Если файл уже есть, добавим суффикс
+    counter = 1
+    while os.path.exists(file_path):
+        clean_name = f"{base_name}_{counter}{ext}"
+        file_path = os.path.join(DOWNLOAD_FOLDER, clean_name)
+        counter += 1
 
     # Скачиваем файл
     file = await context.bot.get_file(file_id)
-    file_path = os.path.join(DOWNLOAD_FOLDER, file_name)
     await file.download_to_drive(file_path)
 
-    # Отправляем файл в ChromaDB
+    # Индексируем
     try:
-        success = index_document(file_path, file_id=hash(file_name))  # Генерируем file_id из имени файла
+        success = index_document(file_path, file_id=hash(clean_name))
         if success:
-            await update.message.reply_text(f"Файл {file_name} загружен и проиндексирован!")
+            await update.message.reply_text(f"✅ Файл *{clean_name}* загружен и проиндексирован!", parse_mode="Markdown")
         else:
-            await update.message.reply_text(f"Не удалось проиндексировать файл {file_name}.")
+            await update.message.reply_text(f"❌ Не удалось проиндексировать файл {clean_name}.")
     except Exception as e:
         await update.message.reply_text(f"Ошибка при обработке файла: {str(e)}")
+
 
 
 
