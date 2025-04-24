@@ -15,11 +15,14 @@ from db_utils import get_all_sessions_for_user
 from db_utils import delete_chat_history
 from db_utils import insert_application_logs
 from vkapi import get_vk_chat_history
+from vkapi import get_vk_subscriptions
 from conversation import parse_vk_messages, conversation_to_prompt
+
 #from telegram.constants import ParseMode  # импорт, если ещё не добавил
 load_dotenv()
 VK_ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
 VK_PEER_ID = os.getenv("VK_PEER_ID")
+VK_USER_ID = os.getenv("VK_USER_ID")
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 # Путь к текущей папке, где лежит скрипт
@@ -266,6 +269,33 @@ async def vkraw(update: Update, context: CallbackContext):
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка при обработке: {str(e)}")
 
+
+async def vksubs(update: Update, context: CallbackContext):
+    await update.message.reply_text("📡 Загружаю подписки пользователя ВКонтакте...")
+
+    try:
+        result = get_vk_subscriptions(VK_USER_ID, VK_ACCESS_TOKEN)
+        if not result or "response" not in result:
+            await update.message.reply_text("❌ Не удалось получить подписки.")
+            return
+
+        groups = result["response"]["items"]
+        if not groups:
+            await update.message.reply_text("🔍 Подписок не найдено.")
+            return
+
+        msg = "📚 Подписки:\n"
+        for group in groups:
+            name = group.get("name", "Без названия")
+            count = group.get("members_count", "неизвестно")
+            desc = group.get("description", "")
+            msg += f"• *{name}* — {count} участников\n"
+            if desc:
+                msg += f"  _{desc[:60]}..._\n"
+        await update.message.reply_text(msg, parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {str(e)}")
+
 def main():
     """Запуск бота"""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -282,6 +312,7 @@ def main():
     app.add_handler(CommandHandler("reset", reset))
     app.add_handler(CommandHandler("vkchat", vkchat))
     app.add_handler(CommandHandler("vkraw", vkraw))
+    app.add_handler(CommandHandler("vksubs", vksubs))
 
 
 
