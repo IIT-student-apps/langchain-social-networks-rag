@@ -14,11 +14,13 @@ from db_utils import insert_application_logs, get_chat_history
 from db_utils import get_all_sessions_for_user  
 from db_utils import delete_chat_history
 from db_utils import insert_application_logs
+from vkapi import get_vk_chat_history
+from conversation import parse_vk_messages, conversation_to_prompt
 #from telegram.constants import ParseMode  # импорт, если ещё не добавил
-
-
-
 load_dotenv()
+VK_ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
+VK_PEER_ID = os.getenv("VK_PEER_ID")
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 # Путь к текущей папке, где лежит скрипт
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -211,6 +213,59 @@ async def reset(update: Update, context: CallbackContext):
     await update.message.reply_text(f"🧹 История чата для session_id `{session_id}` удалена.")
 
 
+
+async def vkchat(update: Update, context: CallbackContext):
+    user_prompt = " ".join(context.args).strip()
+
+    if not user_prompt:
+        await update.message.reply_text("❗ Пожалуйста, укажи, что нужно сделать с перепиской.\n\nПример:\n`/vkchat обобщи переписку`", parse_mode="MarkdownV2")
+        return
+
+    try:
+        await update.message.reply_text("📥 Загружаю переписку из ВКонтакте...")
+
+        vk_data = get_vk_chat_history(VK_PEER_ID, VK_ACCESS_TOKEN)
+        if not vk_data:
+            await update.message.reply_text("❌ Не удалось получить переписку из VK.")
+            return
+
+        convo = parse_vk_messages(vk_data)
+        prompt = conversation_to_prompt(convo, user_prompt)
+
+        response = rag_chain.invoke({"input": prompt, "chat_history": []})
+        await update.message.reply_text(f"🧠 Ответ:\n{response['answer']}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка при обработке: {str(e)}")
+
+def format_conversation_text(convo):
+    return "\n".join(
+        [f"{msg.author_first_name} {msg.author_last_name}: {msg.text}" for msg in convo.messages]
+    )
+
+
+async def vkraw(update: Update, context: CallbackContext):
+    try:
+        await update.message.reply_text("📥 Получаю переписку из VK...")
+
+        vk_data = get_vk_chat_history(VK_PEER_ID, VK_ACCESS_TOKEN)
+        if not vk_data:
+            await update.message.reply_text("❌ Не удалось получить переписку из VK.")
+            return
+
+        convo = parse_vk_messages(vk_data)
+        raw_text = format_conversation_text(convo)
+
+        # Делим текст на части (в Telegram есть лимит 4096 символов)
+        max_len = 4000
+        parts = [raw_text[i:i+max_len] for i in range(0, len(raw_text), max_len)]
+
+        for i, part in enumerate(parts):
+            await update.message.reply_text(f"{part}")
+
+        await update.message.reply_text(f"✅ Отправлено {len(parts)} сообщений.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка при обработке: {str(e)}")
+
 def main():
     """Запуск бота"""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -225,6 +280,8 @@ def main():
     app.add_handler(CommandHandler("switch", switch))
     app.add_handler(CommandHandler("sessions", sessions))
     app.add_handler(CommandHandler("reset", reset))
+    app.add_handler(CommandHandler("vkchat", vkchat))
+    app.add_handler(CommandHandler("vkraw", vkraw))
 
 
 
