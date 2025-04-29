@@ -17,12 +17,19 @@ from db_utils import insert_application_logs
 from vkapi import get_vk_chat_history
 from vkapi import get_vk_subscriptions
 from conversation import parse_vk_messages, conversation_to_prompt
+from vkapi import get_vk_q_and_a
+from vkapi import get_vk_newsfeed
+from vkapi import get_vk_post_reactions
 
 #from telegram.constants import ParseMode  # импорт, если ещё не добавил
 load_dotenv()
 VK_ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
 VK_PEER_ID = os.getenv("VK_PEER_ID")
 VK_USER_ID = os.getenv("VK_USER_ID")
+VK_OWNER_ID = int(os.getenv("VK_OWNER_ID"))  # ID группы или пользователя
+VK_POST_ID = int(os.getenv("VK_POST_ID"))    # ID конкретного поста
+VK_DOMAIN = os.getenv("VK_DOMAIN")
+
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 # Путь к текущей папке, где лежит скрипт
@@ -284,15 +291,164 @@ async def vksubs(update: Update, context: CallbackContext):
             await update.message.reply_text("🔍 Подписок не найдено.")
             return
 
-        msg = "📚 Подписки:\n"
+        lines = []
         for group in groups:
             name = group.get("name", "Без названия")
             count = group.get("members_count", "неизвестно")
-            desc = group.get("description", "")
-            msg += f"• *{name}* — {count} участников\n"
-            if desc:
-                msg += f"  _{desc[:60]}..._\n"
-        await update.message.reply_text(msg, parse_mode="Markdown")
+            desc = group.get("description", "—")
+
+            lines.append(
+                f"*Название:* {name}\n"
+                f"*Участников:* {count}\n"
+                f"*Описание:* {desc[:200]}{'...' if len(desc) > 200 else ''}\n"
+                f"`──────────────`"
+            )
+
+        full_text = "\n\n".join(lines)
+
+        # 🟢 Если нет аргументов — просто отправляем список
+        if not context.args:
+            for i in range(0, len(full_text), 4000):
+                await update.message.reply_text(full_text[i:i+4000])
+            return
+
+        # 🧠 Есть аргументы — анализируем через LLM
+        user_prompt = " ".join(context.args)
+        llm_input = f"Вот список сообществ, на которые подписан пользователь ВКонтакте:\n\n{full_text}\n\n{user_prompt}"
+
+        response = rag_chain.invoke({"input": llm_input, "chat_history": []})
+        await update.message.reply_text(f"🧠 Ответ:\n{response['answer']}")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {str(e)}")
+
+async def vkcomments(update: Update, context: CallbackContext):
+    try:
+        await update.message.reply_text("💬 Загружаю комментарии к посту ВКонтакте...")
+
+        result = get_vk_q_and_a(VK_OWNER_ID, VK_POST_ID, VK_ACCESS_TOKEN)
+        if not result or "response" not in result:
+            await update.message.reply_text("❌ Не удалось получить комментарии.")
+            return
+
+        comments = result["response"].get("items", [])
+        profiles = {p["id"]: p.get("name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
+                    for p in result["response"].get("profiles", []) + result["response"].get("groups", [])}
+
+        if not comments:
+            await update.message.reply_text("🔍 Комментарии не найдены.")
+            return
+
+        # Сформируем текст всех комментариев
+        comment_texts = []
+        for comment in comments[:150]:  # можно изменить лимит
+            user_id = comment.get("from_id")
+            author = profiles.get(user_id, f"ID {user_id}")
+            text = comment.get("text", "").strip()
+            if text:
+                comment_texts.append(f"{author}: {text}")
+
+        full_text = "\n".join(comment_texts)
+
+        # 👇 Вариант 1: без аргументов — просто пересылаем
+        if not context.args:
+            for i in range(0, len(full_text), 4000):
+                await update.message.reply_text(full_text[i:i+4000])
+            return
+
+        # 👇 Вариант 2: есть аргументы — передаём в LLM
+        user_prompt = " ".join(context.args)
+        llm_input = f"Вот комментарии к посту ВКонтакте:\n\n{full_text}\n\n{user_prompt}"
+
+        response = rag_chain.invoke({"input": llm_input, "chat_history": []})
+        await update.message.reply_text(f"🧠 Ответ:\n{response['answer']}")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {str(e)}")
+
+
+async def vknews(update: Update, context: CallbackContext):
+    try:
+        await update.message.reply_text("📰 Получаю рекомендованные посты из ВКонтакте...")
+
+        result = get_vk_newsfeed(VK_OWNER_ID, VK_ACCESS_TOKEN)
+        if not result or "response" not in result:
+            await update.message.reply_text("❌ Не удалось получить ленту.")
+            return
+
+        items = result["response"].get("items", [])
+        if not items:
+            await update.message.reply_text("🔍 Лента пуста.")
+            return
+
+        # Собираем текст постов
+        post_texts = []
+        for post in items[:50]:  # можно изменить количество
+            text = post.get("text", "").strip()
+            if text:
+                post_texts.append(text)
+
+        full_text = "\n\n".join(post_texts)
+
+        # 🧾 Без аргументов — просто пересылаем ленту
+        if not context.args:
+            for i in range(0, len(full_text), 4000):
+                await update.message.reply_text(full_text[i:i+4000])
+            return
+
+        # 🧠 С аргументами — анализируем через LLM
+        user_prompt = " ".join(context.args)
+        llm_input = f"Вот список постов из рекомендованной ленты ВКонтакте:\n\n{full_text}\n\n{user_prompt}"
+
+        response = rag_chain.invoke({"input": llm_input, "chat_history": []})
+        await update.message.reply_text(f"🧠 Ответ:\n{response['answer']}")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка при обработке: {str(e)}")
+
+
+async def vkreactions(update: Update, context: CallbackContext):
+    try:
+        await update.message.reply_text("📊 Загружаю посты и реакции...")
+
+        result = get_vk_post_reactions(VK_DOMAIN, VK_ACCESS_TOKEN)
+        if not result or "response" not in result:
+            await update.message.reply_text("❌ Не удалось получить посты.")
+            return
+
+        posts = result["response"].get("items", [])
+        if not posts:
+            await update.message.reply_text("🔍 Посты не найдены.")
+            return
+
+        # Сформируем краткий список постов с реакциями
+        reactions = []
+        for post in posts[:10]:  # можно изменить лимит
+            text = post.get("text", "").strip()
+            stats = {
+                "likes": post.get("likes", {}).get("count", 0),
+                "reposts": post.get("reposts", {}).get("count", 0),
+                "comments": post.get("comments", {}).get("count", 0),
+                "views": post.get("views", {}).get("count", 0),
+            }
+            short_text = text[:60].replace("\n", " ") + "…" if len(text) > 60 else text
+            reactions.append(f"📝 {short_text}\n👍 {stats['likes']} | 💬 {stats['comments']} | 🔁 {stats['reposts']} | 👁 {stats['views']}\n")
+
+        joined_reactions = "\n".join(reactions)
+
+        # 📋 Просто выводим статистику
+        if not context.args:
+            for i in range(0, len(joined_reactions), 4000):
+                await update.message.reply_text(joined_reactions[i:i+4000])
+            return
+
+        # 🧠 Иначе передаём в LLM с вопросом
+        user_prompt = " ".join(context.args)
+        llm_input = f"Вот список постов с реакциями из сообщества ВКонтакте:\n\n{joined_reactions}\n\n{user_prompt}"
+
+        response = rag_chain.invoke({"input": llm_input, "chat_history": []})
+        await update.message.reply_text(f"🧠 Ответ:\n{response['answer']}")
+
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {str(e)}")
 
@@ -313,6 +469,10 @@ def main():
     app.add_handler(CommandHandler("vkchat", vkchat))
     app.add_handler(CommandHandler("vkraw", vkraw))
     app.add_handler(CommandHandler("vksubs", vksubs))
+    app.add_handler(CommandHandler("vkcomments", vkcomments))
+    app.add_handler(CommandHandler("vknews", vknews))
+    app.add_handler(CommandHandler("vkreactions", vkreactions))
+
 
 
 

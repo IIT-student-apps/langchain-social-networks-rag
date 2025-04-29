@@ -67,12 +67,12 @@ def get_vk_post_reactions(domain, access_token):
         "extended": 0,
         "fields": "id,owner_id,date,comments,likes,reposts,views",
         "access_token": access_token,
-        "v": "5.199",
+        "v": "5.251",
     }
 
     # Заголовки из запроса
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 OPR/117.0.0.0",
         "Referer": "https://vk.com/",
         "Content-Type": "application/x-www-form-urlencoded"
     }
@@ -97,7 +97,7 @@ def get_vk_subscriptions(user_id, access_token):
     form_data = {
         "v": "5.251",
         "user_id": user_id, #Идентификатор пользователя, информацию о сообществах которого требуется получить.
-        "count": 10,
+        "count": 30,
         "extended": 1,
         "offset": 0,
         "filter": "groups",
@@ -137,12 +137,12 @@ def get_vk_q_and_a(owner_id, post_id, access_token):
         "sort": "desc",
         "fields": "name",
         "access_token": access_token,
-        "v": "5.199",
+        "v": "5.251",
     }
 
     # Заголовки из запроса
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 OPR/117.0.0.0",
         "Referer": "https://vk.com/",
         "Content-Type": "application/x-www-form-urlencoded"
     }
@@ -159,11 +159,11 @@ def get_vk_q_and_a(owner_id, post_id, access_token):
         print(f"Ошибка при запросе для owner_id {owner_id}: {str(e)}")
         return None
 
-def get_vk_newsfeed(owner_id, post_id, access_token):
+def get_vk_newsfeed(owner_id, access_token):
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/newsfeed.getRecommended"
     query_params = {
-        "v": "5.246"
+        "v": "5.251"
     }
 
     # Данные для тела запроса 
@@ -174,7 +174,7 @@ def get_vk_newsfeed(owner_id, post_id, access_token):
 
     # Заголовки из запроса
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 OPR/117.0.0.0",
         "Referer": "https://vk.com/",
         "Content-Type": "application/x-www-form-urlencoded"
     }
@@ -196,13 +196,13 @@ def get_vk_newsfeed(owner_id, post_id, access_token):
 
 chat = None
 result = get_vk_chat_history(CHAT_ID, ACCESS_TOKEN)
-print(result)
+#print(result)
 
-chat = conversation.parse_vk_messages(result)
-prompt = None
-print(chat)
+#chat = conversation.parse_vk_messages(result)
+#prompt = None
+#print(chat)
 
-if chat:
-    prompt = conversation.conversation_to_prompt(chat, "Перескажи данный диалог")
+#if chat:
+#    prompt = conversation.conversation_to_prompt(chat, "Перескажи данный диалог")
 
-print(prompt)
+#print(prompt)
