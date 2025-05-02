@@ -424,17 +424,23 @@ async def vkreactions(update: Update, context: CallbackContext):
         # Сформируем краткий список постов с реакциями
         reactions = []
         for post in posts[:10]:  # можно изменить лимит
-            text = post.get("text", "").strip()
+            text = post.get("text", "").strip().replace("\n", " ")
+            short_text = text[:60] + "…" if len(text) > 60 else text
+
             stats = {
                 "likes": post.get("likes", {}).get("count", 0),
                 "reposts": post.get("reposts", {}).get("count", 0),
                 "comments": post.get("comments", {}).get("count", 0),
                 "views": post.get("views", {}).get("count", 0),
             }
-            short_text = text[:60].replace("\n", " ") + "…" if len(text) > 60 else text
-            reactions.append(f"📝 {short_text}\n👍 {stats['likes']} | 💬 {stats['comments']} | 🔁 {stats['reposts']} | 👁 {stats['views']}\n")
 
-        joined_reactions = "\n".join(reactions)
+            reactions.append(
+                f"📝 *{short_text}*\n"
+                f"👍 {stats['likes']} | 💬 {stats['comments']} | 🔁 {stats['reposts']} | 👁 {stats['views']}\n"
+                f"`──────────────`"
+            )
+
+        joined_reactions = "\n\n".join(reactions)
 
         # 📋 Просто выводим статистику
         if not context.args:
@@ -452,6 +458,15 @@ async def vkreactions(update: Update, context: CallbackContext):
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {str(e)}")
 
+
+from token_grabber import get_vk_token
+
+async def gettoken(update: Update, context: CallbackContext):
+    await update.message.reply_text("🌐 Сейчас откроется браузер. Авторизуйся во ВКонтакте...")
+    token = await get_vk_token()
+    await update.message.reply_text(f"✅ Токен сохранён в .env:\n`{token}`")
+
+
 def main():
     """Запуск бота"""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -462,16 +477,17 @@ def main():
     app.add_handler(CommandHandler("delete", delete))  
     app.add_handler(CommandHandler("history", history))
     app.add_handler(CommandHandler("session_id", session_id_cmd))
-    app.add_handler(CommandHandler("newchat", newchat))
-    app.add_handler(CommandHandler("switch", switch))
+    #app.add_handler(CommandHandler("newchat", newchat))
+    #app.add_handler(CommandHandler("switch", switch))
     app.add_handler(CommandHandler("sessions", sessions))
     app.add_handler(CommandHandler("reset", reset))
     app.add_handler(CommandHandler("vkchat", vkchat))
     app.add_handler(CommandHandler("vkraw", vkraw))
     app.add_handler(CommandHandler("vksubs", vksubs))
     app.add_handler(CommandHandler("vkcomments", vkcomments))
-    app.add_handler(CommandHandler("vknews", vknews))
+    #app.add_handler(CommandHandler("vknews", vknews))
     app.add_handler(CommandHandler("vkreactions", vkreactions))
+    app.add_handler(CommandHandler("gettoken", gettoken))
 
 
 
