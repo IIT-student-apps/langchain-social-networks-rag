@@ -15,9 +15,9 @@ def get_vk_chat_history(peer_id, access_token):
     # Данные для тела запроса 
     form_data = {
         "peer_id": peer_id,
-        "start_cmid": 813723,
-        "count": 90,
-        "offset": -24,
+        "start_cmid": 19,
+        "count": 30,
+        "offset": -1,
         "extended": 1,
         "group_id": 0,
         "fwd_extended": 1,
