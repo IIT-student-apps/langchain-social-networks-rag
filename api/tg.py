@@ -20,10 +20,12 @@ from vkapi import get_vk_subscriptions
 from conversation import parse_vk_messages, conversation_to_prompt
 from vkapi import get_vk_q_and_a
 from vkapi import get_vk_post_reactions
+from comments import parse_vk_comments, comments_to_prompt
 from token_grabber import get_vk_token
 from pathlib import Path
 from vkapi import get_vk_post_reactions
 from posts import parse_vk_posts, posts_to_prompt
+from subscriptions import parse_vk_subscriptions, subscriptions_to_prompt
 
 #from telegram.constants import ParseMode  # импорт, если ещё не добавил
 load_dotenv()
@@ -294,37 +296,28 @@ async def vksubs(update: Update, context: CallbackContext):
             await update.message.reply_text("❌ Не удалось получить подписки.")
             return
 
-        groups = result["response"]["items"]
-        if not groups:
+        sub_list = parse_vk_subscriptions(result, group_number=10)
+        if not sub_list.groups:
             await update.message.reply_text("🔍 Подписок не найдено.")
             return
 
-        lines = []
-        for group in groups:
-            name = group.get("name", "Без названия")
-            count = group.get("members_count", "неизвестно")
-            desc = group.get("description", "—")
-
-            lines.append(
-                f"*Название:* {name}\n"
-                f"*Участников:* {count}\n"
-                f"*Описание:* {desc[:200]}{'...' if len(desc) > 200 else ''}\n"
-                f"`──────────────`"
-            )
-
-        full_text = "\n\n".join(lines)
-
-        # 🟢 Если нет аргументов — просто отправляем список
         if not context.args:
-            for i in range(0, len(full_text), 4000):
-                await update.message.reply_text(full_text[i:i+4000])
+            # 📋 Просто выводим список подписок
+            for group in sub_list.groups:
+                msg = (
+                    f"*Название:* {group.name}\n"
+                    f"*Участников:* {group.members_count}\n"
+                    f"*Описание:* {group.description or '—'}\n"
+                    f"`──────────────`"
+                )
+                await update.message.reply_text(msg, parse_mode="Markdown")
             return
 
-        # 🧠 Есть аргументы — анализируем через LLM
-        user_prompt = " ".join(context.args)
-        llm_input = f"Вот список сообществ, на которые подписан пользователь ВКонтакте:\n\n{full_text}\n\n{user_prompt}"
+        # 🧠 Есть аргументы — анализ через LLM
+        question = " ".join(context.args)
+        prompt = subscriptions_to_prompt(sub_list, question)
+        response = rag_chain.invoke({"input": prompt, "chat_history": []})
 
-        response = rag_chain.invoke({"input": llm_input, "chat_history": []})
         await update.message.reply_text(f"🧠 Ответ:\n{response['answer']}")
 
     except Exception as e:
@@ -339,41 +332,33 @@ async def vkcomments(update: Update, context: CallbackContext):
             await update.message.reply_text("❌ Не удалось получить комментарии.")
             return
 
-        comments = result["response"].get("items", [])
-        profiles = {p["id"]: p.get("name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
-                    for p in result["response"].get("profiles", []) + result["response"].get("groups", [])}
-
-        if not comments:
+        thread = parse_vk_comments(result, comment_number=10)
+        if not thread.comments:
             await update.message.reply_text("🔍 Комментарии не найдены.")
             return
 
-        # Сформируем текст всех комментариев
-        comment_texts = []
-        for comment in comments[:150]:  # можно изменить лимит
-            user_id = comment.get("from_id")
-            author = profiles.get(user_id, f"ID {user_id}")
-            text = comment.get("text", "").strip()
-            if text:
-                comment_texts.append(f"{author}: {text}")
-
-        full_text = "\n".join(comment_texts)
-
-        # 👇 Вариант 1: без аргументов — просто пересылаем
+        #Просто показать комментарии
         if not context.args:
-            for i in range(0, len(full_text), 4000):
-                await update.message.reply_text(full_text[i:i+4000])
+            for comment in thread.comments:
+                short_text = comment.text[:60].replace("\n", " ") + "…" if len(comment.text) > 60 else comment.text
+                msg = (
+                    f"*{comment.author_name}*\n"
+                    f"{short_text}\n"
+                    f"👍 {comment.likes}\n"
+                    f"`──────────────`"
+                )
+                await update.message.reply_text(msg, parse_mode="Markdown")
             return
 
-        # 👇 Вариант 2: есть аргументы — передаём в LLM
-        user_prompt = " ".join(context.args)
-        llm_input = f"Вот комментарии к посту ВКонтакте:\n\n{full_text}\n\n{user_prompt}"
+        #Вопрос к LLM
+        question = " ".join(context.args)
+        prompt = comments_to_prompt(thread, question)
+        response = rag_chain.invoke({"input": prompt, "chat_history": []})
 
-        response = rag_chain.invoke({"input": llm_input, "chat_history": []})
         await update.message.reply_text(f"🧠 Ответ:\n{response['answer']}")
 
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {str(e)}")
-
 
 
 async def vkreactions(update: Update, context: CallbackContext):
