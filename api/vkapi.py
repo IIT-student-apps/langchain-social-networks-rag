@@ -8,6 +8,8 @@ client_id = os.getenv("VK_CLIENT_ID")
 start_cmid = os.getenv("VK_START_CMID")
 count = os.getenv("VK_COUNT")
 
+
+# Метод для пересказа диалога
 def get_vk_chat_history(peer_id, access_token):
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/messages.getHistory"
@@ -58,21 +60,23 @@ ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
 #айди диалога(можно найти открыв код страницы с диалогом в браузере->network->ищем peer_id)
 CHAT_ID = os.getenv("VK_PEER_ID")
 
+
+# Метод для получения постов, которые вызвали наибольшую реакцию
 def get_vk_post_reactions(domain, access_token):
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/wall.get"
 
     # Данные для тела запроса 
-    form_data = {
-        "domain": domain, #Короткий адрес пользователя или сообщества.
-        "offset": 0,
-        "count": 32,
-        "filter": "owner",
-        "extended": 0,
-        "fields": "id,owner_id,date,comments,likes,reposts,views",
-        "access_token": access_token,
-        "v": "5.251",
-    }
+    form_data = { 
+        "domain": domain, #Короткий адрес пользователя или сообщества. 
+        "offset": 0, 
+        "count": 32, 
+        "filter": "all", 
+        "extended": 0, 
+        "fields": "id,owner_id,date,comments,likes,reposts,views", 
+        "access_token": access_token, 
+        "v": "5.251", 
+    } 
 
     # Заголовки из запроса
     headers = {
@@ -93,6 +97,7 @@ def get_vk_post_reactions(domain, access_token):
         print(f"Ошибка при запросе для domain {domain}: {str(e)}")
         return None
 
+# Метод для описания личности пользователя по его подпискам на сообщества
 def get_vk_subscriptions(user_id, access_token):
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/groups.get"
@@ -128,6 +133,7 @@ def get_vk_subscriptions(user_id, access_token):
         print(f"Ошибка при запросе для user_id {user_id}: {str(e)}")
         return None
 
+# Метод для получения часто задаваемых вопросов под конкретным постом
 def get_vk_q_and_a(owner_id, post_id, access_token):
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/wall.getComments"
@@ -162,40 +168,6 @@ def get_vk_q_and_a(owner_id, post_id, access_token):
     except Exception as e:
         print(f"Ошибка при запросе для owner_id {owner_id}: {str(e)}")
         return None
-
-def get_vk_newsfeed(owner_id, access_token):
-    # URL и параметры строки запроса
-    url = "https://api.vk.com/method/newsfeed.getRecommended"
-    query_params = {
-        "v": "5.251"
-    }
-
-    # Данные для тела запроса 
-    form_data = {
-        "fields": "name",
-        "access_token": access_token
-    }
-
-    # Заголовки из запроса
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 OPR/117.0.0.0",
-        "Referer": "https://vk.com/",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-
-    try:
-        response = requests.post(
-            url,
-            params=query_params,
-            data=form_data,
-            headers=headers
-        )
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Ошибка при запросе для owner_id {owner_id}: {str(e)}")
-        return None
-
 
 
 chat = None
