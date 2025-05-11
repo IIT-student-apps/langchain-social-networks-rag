@@ -7,8 +7,11 @@ from dotenv import load_dotenv
 client_id = os.getenv("VK_CLIENT_ID")
 start_cmid = os.getenv("VK_START_CMID")
 count = os.getenv("VK_COUNT")
-
-
+owner_id = os.getenv("VK_OWNER_ID")
+peer_id = os.getenv("VK_PEER_ID")
+ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
+accsess_token = os.getenv("VK_ACCESS_TOKEN")
+CHAT_ID = os.getenv("VK_PEER_ID")
 # Метод для пересказа диалога
 def get_vk_chat_history(peer_id, access_token):
     # URL и параметры строки запроса
@@ -21,7 +24,7 @@ def get_vk_chat_history(peer_id, access_token):
     # Данные для тела запроса 
     form_data = {
         "peer_id": peer_id,
-        "start_cmid": start_cmid,
+        "start_cmid": "19",
         "count": count,
         "offset": -1,
         "extended": 1,
@@ -53,22 +56,22 @@ def get_vk_chat_history(peer_id, access_token):
 
 load_dotenv()
 # Пример использования
-ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
+
 #CHAT_ID = os.getenv("VK_PEER_ID")
 #токен вк(можно найти открыв код страницы с диалогом в браузере->network->ищем access_token в самом низу)
 #ACCESS_TOKEN = "vk1.a.GsZMjsrWVoll_DfyS3YnmR2tQzqOSYPZ3BHYREgIvHoHKRfWxExKA3y8uMXpZMtJUxiy4-osGo4vsppnMAUyZ0VZ1bsSglMH40ezSuq11mr948nDLUnpfn4kMw5g6dlosmVa7tEpRg1grVM54iRC-7tRtamQgNR2PiYLkZoQHChT93drLVQYO6zqwvOuTZwmvacqqGmqAGK2r8tXM_-YHw"  
 #айди диалога(можно найти открыв код страницы с диалогом в браузере->network->ищем peer_id)
-CHAT_ID = os.getenv("VK_PEER_ID")
+
 
 
 # Метод для получения постов, которые вызвали наибольшую реакцию
-def get_vk_post_reactions(domain, access_token):
+def get_vk_post_reactions(owner_id, access_token):
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/wall.get"
 
     # Данные для тела запроса 
     form_data = { 
-        "domain": domain, #Короткий адрес пользователя или сообщества. 
+        "domain": owner_id, #Короткий адрес пользователя или сообщества. 
         "offset": 0, 
         "count": 32, 
         "filter": "all", 
@@ -94,7 +97,7 @@ def get_vk_post_reactions(domain, access_token):
         response.raise_for_status()
         return response.json()
     except Exception as e:
-        print(f"Ошибка при запросе для domain {domain}: {str(e)}")
+        print(f"Ошибка при запросе для domain {owner_id}: {str(e)}")
         return None
 
 # Метод для описания личности пользователя по его подпискам на сообщества
