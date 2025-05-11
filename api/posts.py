@@ -22,15 +22,27 @@ def parse_vk_posts(vk_json: dict, post_number: int = -1) -> PostList:
     posts = []
     
     for post in posts_data:
-        posts.append(Post(
+        postText = ""
+
+        if post.get("text", "") != "":
+            postText = post.get("text", "")
+        elif len(post.get("header", {}).get("descriptions", [])) != 0:
+            postText = post.get("header", {}).get("descriptions", [])[0].get("text", {}).get("text", "")
+
+        postObj = Post(
             owner_id=post.get("owner_id", 0),
             post_id=post.get("id", 0),
-            text=post.get("text", ""),
+            text=postText,
             likes=post.get("likes", {}).get("count", 0),
             comments=post.get("comments", {}).get("count", 0),
             reposts=post.get("reposts", {}).get("count", 0),
             views=post.get("views", {}).get("count", 0)
-        ))
+        )
+
+        if postObj.text == "":
+            continue
+
+        posts.append(postObj)
     
     return PostList(posts[:post_number] if post_number > 0 else posts)
 
