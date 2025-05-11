@@ -27,50 +27,39 @@ from vkapi import get_vk_post_reactions
 from posts import parse_vk_posts, posts_to_prompt
 from subscriptions import parse_vk_subscriptions, subscriptions_to_prompt
 
-#from telegram.constants import ParseMode  # импорт, если ещё не добавил
+ADMIN_ID = 909658267
+
 load_dotenv()
 VK_ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
 VK_PEER_ID = os.getenv("VK_PEER_ID")
 VK_USER_ID = os.getenv("VK_USER_ID")
-VK_OWNER_ID = int(os.getenv("VK_OWNER_ID"))  # ID группы или пользователя
-VK_POST_ID = int(os.getenv("VK_POST_ID"))    # ID конкретного поста
+VK_OWNER_ID = int(os.getenv("VK_OWNER_ID"))  
+VK_POST_ID = int(os.getenv("VK_POST_ID"))   
 VK_DOMAIN = os.getenv("VK_DOMAIN")
 VK_CLIENT_ID = os.getenv("VK_CLIENT_ID")
-
-
-
-
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-# Путь к текущей папке, где лежит скрипт
+count = int(os.getenv("VK_COUNT"))
+
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Поднимаемся на уровень выше
 BASE_DIR = os.path.dirname(CURRENT_DIR)
-
-# Путь к папке rag_files, которая на уровень выше
 DOWNLOAD_FOLDER = os.path.join(BASE_DIR, "rag_files")
-# Создаём, если не существует
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 
-# Загружаем RAG-модель
 rag_chain = get_rag_chain()
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
-
-ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
-
 user_sessions = {}
 
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-async def start(update: Update, context: CallbackContext):
-    """Приветственное сообщение"""
-    await update.message.reply_text("Привет! Загрузи документ или задай вопрос, и я помогу!")
+
+
 
 async def chat(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
-    session_id = user_sessions.get(user_id, str(user_id))  # если нет сессии — используется Telegram ID
+    session_id = user_sessions.get(user_id, str(user_id))
 
     user_text = update.message.text
     chat_history = get_chat_history(session_id)
@@ -86,15 +75,9 @@ async def chat(update: Update, context: CallbackContext):
     insert_application_logs(session_id, user_text, answer, model="telegram")
 
 
-
-import uuid
-
 async def handle_document(update: Update, context: CallbackContext):
-    """Обработчик загруженных документов"""
     document = update.message.document
     file_id = document.file_id
-
-    # Получаем оригинальное имя или создаём своё
     file_name = document.file_name
     if not file_name:
         file_ext = os.path.splitext(document.mime_type)[1] or ".bin"
@@ -296,7 +279,7 @@ async def vksubs(update: Update, context: CallbackContext):
             await update.message.reply_text("❌ Не удалось получить подписки.")
             return
 
-        sub_list = parse_vk_subscriptions(result, group_number=10)
+        sub_list = parse_vk_subscriptions(result, group_number=count)
         if not sub_list.groups:
             await update.message.reply_text("🔍 Подписок не найдено.")
             return
@@ -340,10 +323,10 @@ async def vkcomments(update: Update, context: CallbackContext):
         #Просто показать комментарии
         if not context.args:
             for comment in thread.comments:
-                short_text = comment.text[:60].replace("\n", " ") + "…" if len(comment.text) > 60 else comment.text
+                full_text = comment.text.replace("\n", " ")
                 msg = (
                     f"*{comment.author_name}*\n"
-                    f"{short_text}\n"
+                    f"{full_text}\n"
                     f"👍 {comment.likes}\n"
                     f"`──────────────`"
                 )
@@ -371,7 +354,7 @@ async def vkreactions(update: Update, context: CallbackContext):
             await update.message.reply_text("❌ Не удалось получить посты.")
             return
 
-        post_list = parse_vk_posts(result, post_number=10)  # парсим и берём до 10 постов
+        post_list = parse_vk_posts(result, post_number=count)  # парсим и берём до 10 постов
 
         if not post_list.posts:
             await update.message.reply_text("🔍 Посты не найдены.")
@@ -380,7 +363,7 @@ async def vkreactions(update: Update, context: CallbackContext):
         if not context.args:
             # 📋 Просто выводим текст постов и статистику
             for post in post_list.posts:
-                short_text = post.text[:60].replace("\n", " ") + "…" if len(post.text) > 60 else post.text
+                short_text = post.text[:120].replace("\n", " ") + "…" if len(post.text) > 120 else post.text
                 msg = (
                     f"📝 *{short_text}*\n"
                     f"👍 {post.likes} | 💬 {post.comments} | 🔁 {post.reposts} | 👁 {post.views}\n"
@@ -448,10 +431,13 @@ async def gettoken(update: Update, context: CallbackContext):
 
 
 async def restart_bot(update: Update, context: CallbackContext):
-    await update.message.reply_text("🔄 Перезапуск бота...")
-    await context.bot.close()  # корректно закрываем соединение
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("🚫 У тебя нет прав перезапускать бота.")
+        return
 
-    # перезапуск текущего скрипта
+    await update.message.reply_text("🔄 Перезапуск бота...")
+
+    # Просто перезапуск процесса
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 def read_env_file():
@@ -498,8 +484,14 @@ async def get_env(update: Update, context: CallbackContext):
 
 
 async def close_bot(update: Update, context: CallbackContext):
-    await update.message.reply_text("Выключение...")
-    await context.bot.close()  # корректно закрываем соединение
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("🚫 У тебя нет прав выключать бота.")
+        return
+
+    await update.message.reply_text("⏹ Бот отключается...")
+    
+    # Завершить процесс без запроса к Telegram API
+    sys.exit(0)
 
 
 def main():
