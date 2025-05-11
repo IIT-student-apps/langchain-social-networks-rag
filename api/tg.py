@@ -1,6 +1,7 @@
 import logging
 import requests
 import os
+import sys
 import uuid
 from telegram import Update, Document
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
@@ -20,6 +21,8 @@ from conversation import parse_vk_messages, conversation_to_prompt
 from vkapi import get_vk_q_and_a
 from vkapi import get_vk_newsfeed
 from vkapi import get_vk_post_reactions
+from token_grabber import get_vk_token
+from pathlib import Path
 
 #from telegram.constants import ParseMode  # импорт, если ещё не добавил
 load_dotenv()
@@ -49,6 +52,7 @@ rag_chain = get_rag_chain()
 # Логирование
 logging.basicConfig(level=logging.INFO)
 
+ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 
 user_sessions = {}
 
@@ -458,8 +462,46 @@ async def vkreactions(update: Update, context: CallbackContext):
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {str(e)}")
 
+def update_env_file_key(key: str, value: str, path=ENV_PATH):
+    updated = False
+    lines = []
 
-from token_grabber import get_vk_token
+    if path.exists():
+        with path.open("r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        for i, line in enumerate(lines):
+            if line.startswith(f"{key}="):
+                lines[i] = f"{key}={value}\n"
+                updated = True
+                break
+
+    if not updated:
+        lines.append(f"{key}={value}\n")
+
+    with path.open("w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+async def set_env(update: Update, context: CallbackContext):
+    if len(context.args) < 2:
+        await update.message.reply_text("⚠️ Использование: /set KEY VALUE\nНапример: /set VK_USER_ID 123456789")
+        return
+
+    key = context.args[0].strip().upper()
+    value = " ".join(context.args[1:]).strip()
+
+    allowed_keys = {"VK_PEER_ID", "VK_USER_ID", "VK_OWNER_ID", "VK_POST_ID", "VK_ACCESS_TOKEN", "VK_START_CMID", "VK_COUNT", "VK_CLIENT_ID"}
+    if key not in allowed_keys:
+        await update.message.reply_text(f"❌ Недопустимый ключ: `{key}`", parse_mode="Markdown")
+        return
+
+    try:
+        update_env_file_key(key, value)
+        await update.message.reply_text(f"✅ Переменная `{key}` обновлена на `{value}`", parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка при обновлении: {str(e)}")
+
+
 
 async def gettoken(update: Update, context: CallbackContext):
     await update.message.reply_text("🌐 Сейчас откроется браузер. Авторизуйся во ВКонтакте...")
@@ -467,12 +509,67 @@ async def gettoken(update: Update, context: CallbackContext):
     await update.message.reply_text(f"✅ Токен сохранён в .env:\n`{token}`")
 
 
+async def restart_bot(update: Update, context: CallbackContext):
+    await update.message.reply_text("🔄 Перезапуск бота...")
+    await context.bot.close()  # корректно закрываем соединение
+
+    # перезапуск текущего скрипта
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+def read_env_file():
+    env = {}
+    if ENV_PATH.exists():
+        with open(ENV_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                if "=" in line:
+                    k, v = line.strip().split("=", 1)
+                    env[k] = v
+    return env
+
+async def get_env(update: Update, context: CallbackContext):
+    allowed_keys = {
+        "VK_PEER_ID",
+        "VK_USER_ID",
+        "VK_OWNER_ID",
+        "VK_POST_ID",
+        "VK_ACCESS_TOKEN",
+        "VK_CLIENT_ID",
+        "VK_COUNT",
+        "VK_START_CMID"
+    }
+
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ Использование: /get VK_USER_ID\nМожно получить одну из: " +
+            ", ".join(allowed_keys)
+        )
+        return
+
+    key = context.args[0].strip().upper()
+    if key not in allowed_keys:
+        await update.message.reply_text(f"❌ Недопустимый ключ: `{key}`", parse_mode="Markdown")
+        return
+
+    env_vars = read_env_file()
+    value = env_vars.get(key)
+
+    if value:
+        await update.message.reply_text(f"🔐 `{key}` = `{value}`", parse_mode="Markdown")
+    else:
+        await update.message.reply_text(f"⚠️ Значение `{key}` не найдено в .env", parse_mode="Markdown")
+
+
+async def close_bot(update: Update, context: CallbackContext):
+    await update.message.reply_text("Выключение...")
+    await context.bot.close()  # корректно закрываем соединение
+
+
 def main():
     """Запуск бота"""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # Команды
-    app.add_handler(CommandHandler("start", start))
+    #app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("list", list_files))
     app.add_handler(CommandHandler("delete", delete))  
     app.add_handler(CommandHandler("history", history))
@@ -488,6 +585,10 @@ def main():
     #app.add_handler(CommandHandler("vknews", vknews))
     app.add_handler(CommandHandler("vkreactions", vkreactions))
     app.add_handler(CommandHandler("gettoken", gettoken))
+    app.add_handler(CommandHandler("set", set_env))
+    app.add_handler(CommandHandler("restart", restart_bot))
+    app.add_handler(CommandHandler("get", get_env))
+    app.add_handler(CommandHandler("close", close_bot))
 
 
 
@@ -496,6 +597,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))  # Обработка загружаемых файлов
     
+
 
     print("Бот запущен...")
     app.run_polling()

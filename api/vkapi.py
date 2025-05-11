@@ -4,19 +4,23 @@ import conversation
 import os
 from dotenv import load_dotenv
 
+client_id = os.getenv("VK_CLIENT_ID")
+start_cmid = os.getenv("VK_START_CMID")
+count = os.getenv("VK_COUNT")
+
 def get_vk_chat_history(peer_id, access_token):
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/messages.getHistory"
     query_params = {
         "v": "5.251",
-        "client_id": "6287487"
+        "client_id": client_id
     }
 
     # Данные для тела запроса 
     form_data = {
         "peer_id": peer_id,
-        "start_cmid": 19,
-        "count": 30,
+        "start_cmid": start_cmid,
+        "count": count,
         "offset": -1,
         "extended": 1,
         "group_id": 0,
@@ -97,7 +101,7 @@ def get_vk_subscriptions(user_id, access_token):
     form_data = {
         "v": "5.251",
         "user_id": user_id, #Идентификатор пользователя, информацию о сообществах которого требуется получить.
-        "count": 30,
+        "count": count,
         "extended": 1,
         "offset": 0,
         "filter": "groups",
@@ -131,7 +135,7 @@ def get_vk_q_and_a(owner_id, post_id, access_token):
     form_data = {
         "owner_id": owner_id, #Идентификатор владельца страницы (пользователь или сообщество).
         "post_id": post_id, #Идентификатор записи на стене.
-        "count": 100,
+        "count": count,
         "extended": 1,
         "need_likes": 1, 
         "sort": "desc",
