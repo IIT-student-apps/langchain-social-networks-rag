@@ -209,7 +209,7 @@ async def reset(update: Update, context: CallbackContext):
 
 
 async def vkchat(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     user_prompt = " ".join(context.args).strip()
 
     if not user_prompt:
@@ -239,7 +239,7 @@ def format_conversation_text(convo):
 
 
 async def vkraw(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     try:
         await update.message.reply_text("📥 Получаю переписку из VK...")
 
@@ -264,7 +264,7 @@ async def vkraw(update: Update, context: CallbackContext):
 
 
 async def vksubs(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     await update.message.reply_text("📡 Загружаю подписки пользователя ВКонтакте...")
 
     try:
@@ -301,7 +301,7 @@ async def vksubs(update: Update, context: CallbackContext):
         await update.message.reply_text(f"❌ Ошибка: {str(e)}")
 
 async def vkcomments(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     try:
         await update.message.reply_text("💬 Загружаю комментарии к посту ВКонтакте...")
 
@@ -340,7 +340,7 @@ async def vkcomments(update: Update, context: CallbackContext):
 
 
 async def vkreactions(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     try:
         await update.message.reply_text("📊 Загружаю посты и реакции...")
 
@@ -380,7 +380,7 @@ async def vkreactions(update: Update, context: CallbackContext):
 
 
 def update_env_file_key(key: str, value: str, path=ENV_PATH):
-    load_dotenv()
+    load_dotenv(override=True)
     updated = False
     lines = []
 
@@ -401,7 +401,7 @@ def update_env_file_key(key: str, value: str, path=ENV_PATH):
         f.writelines(lines)
 
 async def set_env(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     if len(context.args) < 2:
         await update.message.reply_text("⚠️ Использование: /set KEY VALUE\nНапример: /set VK_USER_ID 123456789")
         return
@@ -431,7 +431,7 @@ async def gettoken(update: Update, context: CallbackContext):
 
 
 async def restart_bot(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("🚫 У тебя нет прав перезапускать бота.")
         return
@@ -444,7 +444,7 @@ async def restart_bot(update: Update, context: CallbackContext):
 
 
 def read_env_file():
-    load_dotenv()
+    load_dotenv(override=True)
     env = {}
     if ENV_PATH.exists():
         with open(ENV_PATH, "r", encoding="utf-8") as f:
@@ -455,7 +455,7 @@ def read_env_file():
     return env
 
 async def get_env(update: Update, context: CallbackContext):
-    load_dotenv()
+    load_dotenv(override=True)
     allowed_keys = {
         "VK_PEER_ID",
         "VK_USER_ID",

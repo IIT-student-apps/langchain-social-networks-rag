@@ -4,13 +4,14 @@ import conversation
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 
 
 # Метод для пересказа диалога
 def get_vk_chat_history(peer_id, access_token):
+    load_dotenv(override=True)
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/messages.getHistory"
     query_params = {
@@ -54,6 +55,7 @@ def get_vk_chat_history(peer_id, access_token):
 
 # Метод для получения постов, которые вызвали наибольшую реакцию
 def get_vk_post_reactions(owner_id, access_token):
+    load_dotenv(override=True)
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/wall.get"
 
@@ -90,6 +92,7 @@ def get_vk_post_reactions(owner_id, access_token):
 
 # Метод для описания личности пользователя по его подпискам на сообщества
 def get_vk_subscriptions(user_id, access_token):
+    load_dotenv(override=True)
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/groups.get"
 
@@ -126,6 +129,7 @@ def get_vk_subscriptions(user_id, access_token):
 
 # Метод для получения часто задаваемых вопросов под конкретным постом
 def get_vk_q_and_a(owner_id, post_id, access_token):
+    load_dotenv(override=True)
     # URL и параметры строки запроса
     url = "https://api.vk.com/method/wall.getComments"
     # Данные для тела запроса 
