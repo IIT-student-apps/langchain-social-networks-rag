@@ -5,15 +5,8 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-client_id = os.getenv("VK_CLIENT_ID")
-start_cmid = os.getenv("VK_START_CMID")
-count = os.getenv("VK_COUNT")
-owner_id = os.getenv("VK_OWNER_ID")
-peer_id = os.getenv("VK_PEER_ID")
-ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
-accsess_token = os.getenv("VK_ACCESS_TOKEN")
-CHAT_ID = os.getenv("VK_PEER_ID")
-offset = os.getenv("VK_OFFSET")
+
+
 
 
 # Метод для пересказа диалога
@@ -22,20 +15,20 @@ def get_vk_chat_history(peer_id, access_token):
     url = "https://api.vk.com/method/messages.getHistory"
     query_params = {
         "v": "5.251",
-        "client_id": client_id
+        "client_id": os.getenv("VK_CLIENT_ID")
     }
 
     # Данные для тела запроса 
     form_data = {
-        "peer_id": peer_id,
-        "start_cmid": start_cmid,
-        "count": count,
-        "offset": offset,
+        "peer_id": os.getenv("VK_PEER_ID"),
+        "start_cmid": os.getenv("VK_START_CMID"),
+        "count": int(os.getenv("VK_COUNT", 10)),
+        "offset": -1,
         "extended": 1,
         "group_id": 0,
         "fwd_extended": 1,
         "fields": "id,first_name,last_name",
-        "access_token": access_token
+        "access_token": os.getenv("VK_ACCESS_TOKEN")
     }
 
     # Заголовки из запроса
@@ -66,13 +59,13 @@ def get_vk_post_reactions(owner_id, access_token):
 
     # Данные для тела запроса 
     form_data = { 
-        "domain": owner_id, #Короткий адрес пользователя или сообщества. 
+        "domain": os.getenv("VK_OWNER_ID"), #Короткий адрес пользователя или сообщества. 
         "offset": 0, 
-        "count": count, 
+        "count": int(os.getenv("VK_COUNT", 10)), 
         "filter": "all", 
         "extended": 0, 
         "fields": "id,owner_id,date,comments,likes,reposts,views", 
-        "access_token": access_token, 
+        "access_token": os.getenv("VK_ACCESS_TOKEN"), 
         "v": "5.251", 
     } 
 
@@ -103,13 +96,13 @@ def get_vk_subscriptions(user_id, access_token):
     # Данные для тела запроса 
     form_data = {
         "v": "5.251",
-        "user_id": user_id, #Идентификатор пользователя, информацию о сообществах которого требуется получить.
-        "count": count,
+        "user_id": os.getenv("VK_USER_ID"), #Идентификатор пользователя, информацию о сообществах которого требуется получить.
+        "count": int(os.getenv("VK_COUNT", 10)),
         "extended": 1,
         "offset": 0,
         "filter": "groups",
         "fields": "description,members_count,name",
-        "access_token": access_token
+        "access_token": os.getenv("VK_ACCESS_TOKEN")
     }
 
     # Заголовки из запроса
@@ -137,14 +130,14 @@ def get_vk_q_and_a(owner_id, post_id, access_token):
     url = "https://api.vk.com/method/wall.getComments"
     # Данные для тела запроса 
     form_data = {
-        "owner_id": owner_id, #Идентификатор владельца страницы (пользователь или сообщество).
-        "post_id": post_id, #Идентификатор записи на стене.
-        "count": count,
+        "owner_id": os.getenv("VK_OWNER_ID"), #Идентификатор владельца страницы (пользователь или сообщество).
+        "post_id": os.getenv("VK_POST_ID"), #Идентификатор записи на стене.
+        "count": int(os.getenv("VK_COUNT", 10)),
         "extended": 1,
         "need_likes": 1, 
         "sort": "desc",
         "fields": "name",
-        "access_token": access_token,
+        "access_token": os.getenv("VK_ACCESS_TOKEN"),
         "v": "5.251",
     }
 
@@ -169,4 +162,4 @@ def get_vk_q_and_a(owner_id, post_id, access_token):
 
 
 chat = None
-result = get_vk_chat_history(CHAT_ID, ACCESS_TOKEN)
+result = get_vk_chat_history(os.getenv("VK_PEER_ID"), os.getenv("VK_ACCESS_TOKEN"))

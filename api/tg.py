@@ -30,15 +30,7 @@ from subscriptions import parse_vk_subscriptions, subscriptions_to_prompt
 ADMIN_ID = 909658267
 
 load_dotenv()
-VK_ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
-VK_PEER_ID = os.getenv("VK_PEER_ID")
-VK_USER_ID = os.getenv("VK_USER_ID")
-VK_OWNER_ID = int(os.getenv("VK_OWNER_ID"))  
-VK_POST_ID = int(os.getenv("VK_POST_ID"))   
-VK_DOMAIN = os.getenv("VK_DOMAIN")
-VK_CLIENT_ID = os.getenv("VK_CLIENT_ID")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-count = int(os.getenv("VK_COUNT"))
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(CURRENT_DIR)
@@ -53,7 +45,6 @@ logging.basicConfig(level=logging.INFO)
 user_sessions = {}
 
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
 
 
 
@@ -218,6 +209,7 @@ async def reset(update: Update, context: CallbackContext):
 
 
 async def vkchat(update: Update, context: CallbackContext):
+    load_dotenv()
     user_prompt = " ".join(context.args).strip()
 
     if not user_prompt:
@@ -227,7 +219,7 @@ async def vkchat(update: Update, context: CallbackContext):
     try:
         await update.message.reply_text("📥 Загружаю переписку из ВКонтакте...")
 
-        vk_data = get_vk_chat_history(VK_PEER_ID, VK_ACCESS_TOKEN)
+        vk_data = get_vk_chat_history(os.getenv("VK_PEER_ID"), os.getenv("VK_ACCESS_TOKEN"))
         if not vk_data:
             await update.message.reply_text("❌ Не удалось получить переписку из VK.")
             return
@@ -247,10 +239,11 @@ def format_conversation_text(convo):
 
 
 async def vkraw(update: Update, context: CallbackContext):
+    load_dotenv()
     try:
         await update.message.reply_text("📥 Получаю переписку из VK...")
 
-        vk_data = get_vk_chat_history(VK_PEER_ID, VK_ACCESS_TOKEN)
+        vk_data = get_vk_chat_history(os.getenv("VK_PEER_ID"), os.getenv("VK_ACCESS_TOKEN"))
         if not vk_data:
             await update.message.reply_text("❌ Не удалось получить переписку из VK.")
             return
@@ -271,15 +264,16 @@ async def vkraw(update: Update, context: CallbackContext):
 
 
 async def vksubs(update: Update, context: CallbackContext):
+    load_dotenv()
     await update.message.reply_text("📡 Загружаю подписки пользователя ВКонтакте...")
 
     try:
-        result = get_vk_subscriptions(VK_USER_ID, VK_ACCESS_TOKEN)
+        result = get_vk_subscriptions(os.getenv("VK_USER_ID"), os.getenv("VK_ACCESS_TOKEN"))
         if not result or "response" not in result:
             await update.message.reply_text("❌ Не удалось получить подписки.")
             return
 
-        sub_list = parse_vk_subscriptions(result, group_number=count)
+        sub_list = parse_vk_subscriptions(result, group_number=int(os.getenv("VK_COUNT", 10)))
         if not sub_list.groups:
             await update.message.reply_text("🔍 Подписок не найдено.")
             return
@@ -293,7 +287,7 @@ async def vksubs(update: Update, context: CallbackContext):
                     f"*Описание:* {group.description or '—'}\n"
                     f"`──────────────`"
                 )
-                await update.message.reply_text(msg, parse_mode="Markdown")
+                await update.message.reply_text(msg)
             return
 
         # 🧠 Есть аргументы — анализ через LLM
@@ -307,15 +301,16 @@ async def vksubs(update: Update, context: CallbackContext):
         await update.message.reply_text(f"❌ Ошибка: {str(e)}")
 
 async def vkcomments(update: Update, context: CallbackContext):
+    load_dotenv()
     try:
         await update.message.reply_text("💬 Загружаю комментарии к посту ВКонтакте...")
 
-        result = get_vk_q_and_a(VK_OWNER_ID, VK_POST_ID, VK_ACCESS_TOKEN)
+        result = get_vk_q_and_a(os.getenv("VK_OWNER_ID"), os.getenv("VK_POST_ID"), os.getenv("VK_ACCESS_TOKEN"))
         if not result or "response" not in result:
             await update.message.reply_text("❌ Не удалось получить комментарии.")
             return
 
-        thread = parse_vk_comments(result, comment_number=10)
+        thread = parse_vk_comments(result, comment_number=int(os.getenv("VK_COUNT", 10)))
         if not thread.comments:
             await update.message.reply_text("🔍 Комментарии не найдены.")
             return
@@ -330,7 +325,7 @@ async def vkcomments(update: Update, context: CallbackContext):
                     f"👍 {comment.likes}\n"
                     f"`──────────────`"
                 )
-                await update.message.reply_text(msg, parse_mode="Markdown")
+                await update.message.reply_text(msg)
             return
 
         #Вопрос к LLM
@@ -345,16 +340,17 @@ async def vkcomments(update: Update, context: CallbackContext):
 
 
 async def vkreactions(update: Update, context: CallbackContext):
+    load_dotenv()
     try:
         await update.message.reply_text("📊 Загружаю посты и реакции...")
 
         # Получаем JSON с постами
-        result = get_vk_post_reactions(VK_OWNER_ID, VK_ACCESS_TOKEN)
+        result = get_vk_post_reactions(os.getenv("VK_OWNER_ID"), os.getenv("VK_ACCESS_TOKEN"))
         if not result or "response" not in result:
             await update.message.reply_text("❌ Не удалось получить посты.")
             return
 
-        post_list = parse_vk_posts(result, post_number=count)  # парсим и берём до 10 постов
+        post_list = parse_vk_posts(result, post_number=int(os.getenv("VK_COUNT", 10)))  
 
         if not post_list.posts:
             await update.message.reply_text("🔍 Посты не найдены.")
@@ -369,7 +365,7 @@ async def vkreactions(update: Update, context: CallbackContext):
                     f"👍 {post.likes} | 💬 {post.comments} | 🔁 {post.reposts} | 👁 {post.views}\n"
                     f"`──────────────`"
                 )
-                await update.message.reply_text(msg, parse_mode="Markdown")
+                await update.message.reply_text(msg)
             return
 
         # 🧠 Если есть вопрос — анализируем через LLM
@@ -384,6 +380,7 @@ async def vkreactions(update: Update, context: CallbackContext):
 
 
 def update_env_file_key(key: str, value: str, path=ENV_PATH):
+    load_dotenv()
     updated = False
     lines = []
 
@@ -404,6 +401,7 @@ def update_env_file_key(key: str, value: str, path=ENV_PATH):
         f.writelines(lines)
 
 async def set_env(update: Update, context: CallbackContext):
+    load_dotenv()
     if len(context.args) < 2:
         await update.message.reply_text("⚠️ Использование: /set KEY VALUE\nНапример: /set VK_USER_ID 123456789")
         return
@@ -411,7 +409,7 @@ async def set_env(update: Update, context: CallbackContext):
     key = context.args[0].strip().upper()
     value = " ".join(context.args[1:]).strip()
 
-    allowed_keys = {"VK_PEER_ID", "VK_USER_ID", "VK_OWNER_ID", "VK_POST_ID", "VK_ACCESS_TOKEN", "VK_START_CMID", "VK_COUNT", "VK_CLIENT_ID"}
+    allowed_keys = {"VK_PEER_ID", "VK_USER_ID", "VK_OWNER_ID", "VK_POST_ID", "VK_ACCESS_TOKEN", "VK_START_CMID", "VK_COUNT", "VK_CLIENT_ID", "VK_START_CMID", "VK_OFFSET"}
     if key not in allowed_keys:
         await update.message.reply_text(f"❌ Недопустимый ключ: `{key}`", parse_mode="Markdown")
         return
@@ -425,12 +423,15 @@ async def set_env(update: Update, context: CallbackContext):
 
 
 async def gettoken(update: Update, context: CallbackContext):
+
     await update.message.reply_text("🌐 Сейчас откроется браузер. Авторизуйся во ВКонтакте...")
     token = await get_vk_token()
     await update.message.reply_text(f"✅ Токен сохранён в .env:\n`{token}`")
 
 
+
 async def restart_bot(update: Update, context: CallbackContext):
+    load_dotenv()
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("🚫 У тебя нет прав перезапускать бота.")
         return
@@ -438,9 +439,12 @@ async def restart_bot(update: Update, context: CallbackContext):
     await update.message.reply_text("🔄 Перезапуск бота...")
 
     # Просто перезапуск процесса
-    os.execv(sys.executable, [sys.executable] + sys.argv)
+    os.execv(sys.executable, [sys.executable, __file__])
+
+
 
 def read_env_file():
+    load_dotenv()
     env = {}
     if ENV_PATH.exists():
         with open(ENV_PATH, "r", encoding="utf-8") as f:
@@ -451,6 +455,7 @@ def read_env_file():
     return env
 
 async def get_env(update: Update, context: CallbackContext):
+    load_dotenv()
     allowed_keys = {
         "VK_PEER_ID",
         "VK_USER_ID",
@@ -459,7 +464,8 @@ async def get_env(update: Update, context: CallbackContext):
         "VK_ACCESS_TOKEN",
         "VK_CLIENT_ID",
         "VK_COUNT",
-        "VK_START_CMID"
+        "VK_START_CMID",
+        "VK_OFFSET"
     }
 
     if not context.args:
