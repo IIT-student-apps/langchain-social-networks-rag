@@ -1,6 +1,48 @@
 import requests
 import streamlit as st
 
+
+def get_all_conv():
+    ids = requests.get("http://localhost:8000/get_chat/all")
+    if ids:
+        return ids
+    else:
+        return None
+
+def get_conversation(screen_name):
+    text = requests.get("http://localhost:8000/get_chat", params={"screen_name": screen_name})
+    if text:
+        return text
+    else:
+        st.error(f"Ошибка получения пользователя @{screen_name}")
+        return None
+
+def get_user_profile():
+    user_info = requests.get("http://localhost:8000/self_user/profile")
+    if user_info:
+        return user_info.json()
+    else:
+        st.error(f"Ошибка при загрузке данных пользователя")
+        return None
+
+def get_token():
+    user_info = requests.post("http://localhost:8000/get_token")
+    if user_info:
+        return user_info.json()
+    else:
+        st.error(f"Ошибка получения токена доступа")
+        return None
+
+
+
+
+
+
+
+
+
+
+
 def get_api_response(question, session_id, model):
     headers = {
         'accept': 'application/json',

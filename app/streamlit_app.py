@@ -2,7 +2,14 @@ import streamlit as st
 from sidebar import display_sidebar
 from chat_interface import display_chat_interface
 
-st.title("RAG помошник")
+st.set_page_config(
+    page_title="ВК помощник",
+    page_icon="🎨",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+st.title("ВК помощник")
 
 # Initialize session state variables
 if "messages" not in st.session_state:
