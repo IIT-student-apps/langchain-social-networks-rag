@@ -3,53 +3,17 @@ from playwright.async_api import async_playwright
 import os
 from pathlib import Path
 
+
+import asyncio
+from playwright.async_api import async_playwright
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+
+
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
-async def get_vk_token():
-    token_found = None
-
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
-        context = await browser.new_context()
-        page = await context.new_page()
-
-        def check_request(request):
-            nonlocal token_found
-            try:
-                data = request.post_data_json
-                if "access_token" in data:
-                    token_found = data["access_token"]
-            except:
-                pass
-
-        page.on("requestfinished", check_request)
-
-        print("🌐 Открылся браузер. Авторизуйся во ВКонтакте (есть 60 секунд)...")
-        await page.goto("https://vk.com")
-
-        # Даём пользователю 60 секунд на авторизацию вручную
-        await page.wait_for_timeout(60_000)
-
-        print("⏳ Начинаем слушать токен...")
-
-        # Попытки найти токен в течение 30 секунд (обновляя страницу каждые 5 сек)
-        for _ in range(6):
-            if token_found:
-                break
-            await page.goto("https://vk.com/feed")
-            await page.wait_for_timeout(5000)
-
-        if token_found:
-            print(f"\n✅ Найден access_token:\n{token_found}")
-            update_env_file("VK_ACCESS_TOKEN", token_found)
-            print("💾 Токен сохранён в .env")
-        else:
-            print("❌ Токен не найден. Попробуй снова.")
-
-        await context.close()
-        await browser.close()
-        return token_found
-
+# Обновление/создание переменной в .env
 def update_env_file(key, value):
     updated = False
     lines = []
@@ -69,3 +33,44 @@ def update_env_file(key, value):
 
     with open(ENV_FILE, "w", encoding="utf-8") as f:
         f.writelines(lines)
+
+    print(f"✅ Токен обновлён и записан в .env: {value[:12]}...")
+
+# Основной процесс
+async def get_vk_token():
+    current_token = None
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        context = await browser.new_context()
+        page = await context.new_page()
+
+        # Перехват запроса
+        def check_request(request):
+            nonlocal current_token
+            try:
+                json = request.post_data_json
+                if "access_token" in json:
+                    new_token = json["access_token"]
+                    if new_token != current_token:
+                        current_token = new_token
+                        update_env_file("VK_ACCESS_TOKEN", current_token)
+            except:
+                pass
+
+        page.on("requestfinished", check_request)
+
+        print("🌐 Открылся браузер. Авторизуйтесь во ВКонтакте.")
+        await page.goto("https://vk.com")
+
+        # Цикл слежения за обновлениями
+        while True:
+            await page.wait_for_timeout(300000)
+            await page.goto("https://vk.com/feed")
+
+        await context.close()
+        await browser.close()
+
+# Запуск
+if __name__ == "__main__":
+    asyncio.run(get_vk_token())

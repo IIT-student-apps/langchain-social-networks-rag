@@ -3,6 +3,7 @@ import requests
 import os
 import sys
 import uuid
+import subprocess
 from telegram import Update, Document
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from langchain_utils import get_rag_chain
@@ -28,6 +29,8 @@ from posts import parse_vk_posts, posts_to_prompt
 from subscriptions import parse_vk_subscriptions, subscriptions_to_prompt
 
 ADMIN_ID = 909658267
+
+GETTOKEN_SCRIPT_PATH = "token_grabber.py"
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -423,10 +426,15 @@ async def set_env(update: Update, context: CallbackContext):
 
 
 async def gettoken(update: Update, context: CallbackContext):
+    try:
+        subprocess.Popen(["python", GETTOKEN_SCRIPT_PATH])
+        await update.message.reply_text(
+            "🌐 Окно браузера должно открыться. Авторизуйся во ВКонтакте.\n"
+            "Токен будет сохранён в `.env`, как только будет обнаружен."
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка при запуске граббера: {str(e)}")
 
-    await update.message.reply_text("🌐 Сейчас откроется браузер. Авторизуйся во ВКонтакте...")
-    token = await get_vk_token()
-    await update.message.reply_text(f"✅ Токен сохранён в .env:\n`{token}`")
 
 
 
@@ -498,6 +506,9 @@ async def close_bot(update: Update, context: CallbackContext):
     
     # Завершить процесс без запроса к Telegram API
     sys.exit(0)
+
+
+
 
 
 def main():
