@@ -6,11 +6,11 @@ from typing import List
 from langchain_core.documents import Document
 import os
 
-# Initialize text splitter and embedding function
+
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
 embedding_function = OllamaEmbeddings(model="denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m:latest")
 
-# Initialize Chroma vector store
+
 vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embedding_function)
 
 def load_and_split_document(file_path: str) -> List[Document]:

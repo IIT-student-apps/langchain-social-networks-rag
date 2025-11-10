@@ -138,7 +138,7 @@ def get_vk_q_and_a(owner_id, post_id, access_token):
         "post_id": os.getenv("VK_POST_ID"), #Идентификатор записи на стене.
         "count": int(os.getenv("VK_COUNT", 10)),
         "extended": 1,
-        "need_likes": 1, 
+        "need_likes": 0, 
         "sort": "desc",
         "fields": "name",
         "access_token": os.getenv("VK_ACCESS_TOKEN"),

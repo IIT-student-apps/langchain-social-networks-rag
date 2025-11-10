@@ -293,7 +293,7 @@ async def vksubs(update: Update, context: CallbackContext):
                 await update.message.reply_text(msg)
             return
 
-        # 🧠 Есть аргументы — анализ через LLM
+        # Есть аргументы — анализ через LLM
         question = " ".join(context.args)
         prompt = subscriptions_to_prompt(sub_list, question)
         response = rag_chain.invoke({"input": prompt, "chat_history": []})
