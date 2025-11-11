@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 
-ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+ENV_FILE = "D:\RAG\langchain-social-networks-rag\.env"
 
 # Обновление/создание переменной в .env
 def update_env_file(key, value):

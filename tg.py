@@ -28,6 +28,8 @@ from vkapi import get_vk_post_reactions
 from posts import parse_vk_posts, posts_to_prompt
 from subscriptions import parse_vk_subscriptions, subscriptions_to_prompt
 
+from graph.workflow import app as analysis_graph
+
 ADMIN_ID = 909658267
 
 GETTOKEN_SCRIPT_PATH = "token_grabber.py"
@@ -504,9 +506,56 @@ async def close_bot(update: Update, context: CallbackContext):
 
     await update.message.reply_text("⏹ Бот отключается...")
     
-    # Завершить процесс без запроса к Telegram API
+
     sys.exit(0)
 
+
+from graph.workflow import app as analysis_graph
+"""
+async def analyze_vk(update: Update, context: CallbackContext):
+    query = " ".join(context.args) or "Проанализируй сообщество"
+    await update.message.reply_text("Анализирую VK-сообщество...")
+
+    try:
+        result = await analysis_graph.ainvoke({
+            "user_query": query,
+            "results": []
+        })
+        await update.message.reply_text(result["final_answer"], parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text(f"Ошибка: {str(e)}")
+"""
+def format_for_telegram(text: str) -> str:
+    """Заменяем Markdown на HTML для Telegram"""
+    text = text.replace("**", "<b>").replace("**", "</b>")  # жирный
+    text = text.replace("__", "<i>").replace("__", "</i>")  # курсив
+    text = text.replace("```", "<code>").replace("```", "</code>")  # код
+    text = text.replace("---", "—")  # разделитель
+    return text
+
+async def analyze_vk(update: Update, context: CallbackContext):
+    query = " ".join(context.args) or "Проанализируй сообщество"
+    await update.message.reply_text("Анализирую данные...")
+
+    try:
+        result = await analysis_graph.ainvoke({
+            "user_query": query,
+            "results": []
+        })
+        
+        final_answer = result["final_answer"]
+        final_answer = format_for_telegram(final_answer)
+
+        # РАЗБИВАЕМ НА ЧАСТИ ПО 4000 символов
+        max_length = 4000
+        parts = [final_answer[i:i+max_length] for i in range(0, len(final_answer), max_length)]
+
+        for i, part in enumerate(parts):
+            prefix = f"**Часть {i+1}/{len(parts)}**\n\n" if len(parts) > 1 else ""
+            await update.message.reply_text(prefix + part)
+
+    except Exception as e:
+        await update.message.reply_text(f"Ошибка: {str(e)}")
 
 
 
@@ -533,7 +582,7 @@ def main():
     app.add_handler(CommandHandler("get", get_env))
     app.add_handler(CommandHandler("close", close_bot))
 
-
+    app.add_handler(CommandHandler("analyze", analyze_vk))
 
 
     # Обработка сообщений

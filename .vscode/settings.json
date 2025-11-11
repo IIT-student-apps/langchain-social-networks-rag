@@ -1,5 +1,8 @@
 {
     "python.analysis.extraPaths": [
-        "./api"
+        "./api",
+        "./venv/Lib/site-packages",
+        "."
     ]
+    
 }
