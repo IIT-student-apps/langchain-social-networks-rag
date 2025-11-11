@@ -8,7 +8,7 @@ import os
 
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
-embedding_function = OllamaEmbeddings(model="qwen3:8b")
+embedding_function = OllamaEmbeddings(model="denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m:latest")
 
 
 vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embedding_function)

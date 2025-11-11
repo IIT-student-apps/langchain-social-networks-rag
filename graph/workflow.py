@@ -58,7 +58,7 @@ async def run_agents(state):
 
     return {"results": results}
 
-# Сборка результата
+
 def compile_results(state):
     if not state["results"]:
         return {"final_answer": "Нет данных для анализа."}
@@ -66,7 +66,7 @@ def compile_results(state):
     final = "\n\n".join([f"Агент {i+1}:\n{r}" for i, r in enumerate(state["results"])])
     return {"final_answer": final}
 
-# Граф: ПОСЛЕДОВАТЕЛЬНО
+
 workflow = StateGraph(AgentState)
 workflow.add_node("orchestrator", orchestrator_node)
 workflow.add_node("run_agents", run_agents)

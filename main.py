@@ -19,7 +19,7 @@ app = FastAPI(title="VK Social RAG API")
 class QueryInput(BaseModel):
     question: str
     session_id: Optional[str] = None
-    model: str = "qwen3:4b"
+    model: str = "qwen3:8b"
 
 class QueryResponse(BaseModel):
     answer: str

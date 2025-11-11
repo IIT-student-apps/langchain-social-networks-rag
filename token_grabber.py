@@ -13,7 +13,7 @@ from pathlib import Path
 
 ENV_FILE = "D:\RAG\langchain-social-networks-rag\.env"
 
-# Обновление/создание переменной в .env
+
 def update_env_file(key, value):
     updated = False
     lines = []
@@ -36,7 +36,7 @@ def update_env_file(key, value):
 
     print(f"✅ Токен обновлён и записан в .env: {value[:12]}...")
 
-# Основной процесс
+
 async def get_vk_token():
     current_token = None
 

@@ -9,7 +9,7 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 # Векторная БД
 vectorstore = Chroma(
     persist_directory="./chroma_db",
-    embedding_function=OllamaEmbeddings(model="qwen3:4b")
+    embedding_function=OllamaEmbeddings(model="denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m:latest")
 )
 retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 

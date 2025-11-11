@@ -142,10 +142,6 @@ def set_post_from_url(url: str) -> str:
     """
     Парсит ссылку на пост VK и обновляет .env (VK_OWNER_ID, VK_POST_ID).
 
-    Пример: https://vk.com/warthunder?w=wall-13137988_6241470
-    → VK_OWNER_ID = -13137988
-    → VK_POST_ID = 6241470
-
     Args:
         url (str): Полная ссылка на пост VK.
 
@@ -199,10 +195,6 @@ def set_post_from_url(url: str) -> str:
 def set_chat_from_url(url: str) -> str:
     """
     Парсит ссылку на чат VK и обновляет .env (VK_PEER_ID).
-
-    Пример: https://vk.com/im/convo/2000000006?entrypoint=list_all
-    → VK_PEER_ID = 2000000006
-
     Args:
         url (str): Полная ссылка на чат VK.
 
