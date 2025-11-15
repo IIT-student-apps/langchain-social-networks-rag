@@ -3,7 +3,9 @@ from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
 from agents.chat_analyst import chat_analyst
 from agents.comment_analyst import comment_analyst
+from agents.profile_analyst import profile_analyst
 from graph.orchestrator import orchestrator_chain
+from agents.post_analyst import post_analyst
 from langchain_core.messages import HumanMessage, AIMessage
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,7 +25,7 @@ def orchestrator_node(state):
         return {"plan": {"agents": agents, "reason": reason}, "results": []}
     except Exception as e:
         print(f"Оркестратор упал: {e}")
-        return {"plan": {"agents": ["chat_analyst", "comment_analyst"], "reason": "fallback"}, "results": []}
+        return {"plan": {"agents": ["chat_analyst", "comment_analyst", "profile_analyst", "post_analyst"], "reason": "fallback"}, "results": []}
 
 
 async def run_agents(state):
@@ -36,6 +38,10 @@ async def run_agents(state):
                 agent = chat_analyst
             elif agent_name == "comment_analyst":
                 agent = comment_analyst
+            elif agent_name == "profile_analyst":
+                agent = profile_analyst
+            elif agent_name == "post_analyst":
+                agent = post_analyst
             else:
                 continue
 

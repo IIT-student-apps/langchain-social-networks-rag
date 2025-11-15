@@ -18,14 +18,14 @@ load_dotenv()
 
 
 @tool
-def collect_chat_history(max_messages: int = 20) -> str:
+def collect_chat_history(max_messages: int = 50) -> str:
     """
     Собирает последние сообщения из чата VK.
 
     Использует VK API (messages.getHistory) и возвращает отформатированную переписку.
 
     Args:
-        max_messages (int): Максимальное количество сообщений (по умолчанию 20).
+        max_messages (int): Максимальное количество сообщений (по умолчанию 50).
 
     Returns:
         str: Переписка в формате:
@@ -72,6 +72,7 @@ def collect_comments(post_id: Optional[str] = None, max_comments: int = 30) -> s
              ...
              Если ошибка — сообщение об ошибке.
     """
+    print("Использовал тул collect_comments")
     try:
         post_id = os.getenv("VK_POST_ID")
         if not post_id:
@@ -148,7 +149,7 @@ def set_post_from_url(url: str) -> str:
     Returns:
         str: Подтверждение или сообщение об ошибке.
     """
-
+    print("Использовал тул set_post_from_url")
     def update_env(key: str, value: str):
 
         if ENV_PATH.exists():
@@ -172,9 +173,10 @@ def set_post_from_url(url: str) -> str:
         ENV_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
         os.environ[key] = value
 
-  
+    print(url)
     match = re.search(r"wall(-?\d+)_(\d+)", url)
     if not match:
+        print("ошибка в распозновании ссылки")
         return "Ошибка: неверный формат ссылки. Ожидается wall-XXXX_YYYY"
 
     owner_id = match.group(1)
@@ -193,14 +195,64 @@ def set_post_from_url(url: str) -> str:
 
 @tool
 def set_chat_from_url(url: str) -> str:
+    """ Парсит ссылку на чат VK и обновляет .env (VK_PEER_ID). Args: url (str): Полная ссылка на чат VK. Returns: str: Подтверждение или сообщение об ошибке. """
+    print("Использовал тул set_chat_from_url, вход:", url)
+
+    def update_env(key: str, value: str):
+        if ENV_PATH.exists():
+            lines = ENV_PATH.read_text(encoding="utf-8").splitlines()
+        else:
+            lines = []
+        new_lines = []
+        found = False
+        for line in lines:
+            if line.startswith(f"{key}="):
+                new_lines.append(f"{key}={value}")
+                found = True
+            else:
+                new_lines.append(line)
+        if not found:
+            new_lines.append(f"{key}={value}")
+        ENV_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+        os.environ[key] = value
+
+    s = (url or "").strip()
+
+    # 1) ищем convo/<digits>
+    m = re.search(r"convo/(\d+)", s)
+    if m:
+        peer_id = m.group(1)
+    else:
+        # 2) если передали просто число
+        if re.fullmatch(r"\d+", s):
+            peer_id = s
+        else:
+            # 3) пробуем найти внутри полного url вида vk.com/...convo/123
+            m2 = re.search(r"vk\.com/.+convo/(\d+)", s)
+            if m2:
+                peer_id = m2.group(1)
+            else:
+                return "Ошибка: не удалось распознать ссылку на чат. Ожидается формат: convo/XXXXXXXXX или просто XXXXXXXXX"
+
+    update_env("VK_PEER_ID", peer_id)
+    return f"Чат установлен:\nVK_PEER_ID = {peer_id}"
+
+
+@tool
+def set_post_by_id(owner_id: str, post_id: str) -> str:
     """
-    Парсит ссылку на чат VK и обновляет .env (VK_PEER_ID).
+    Устанавливает VK_OWNER_ID и VK_POST_ID в .env по переданным ID.
+
+    Используется агентом постов для выбора "лучшего" поста.
+
     Args:
-        url (str): Полная ссылка на чат VK.
+        owner_id (str): ID владельца (если группы, то с минусом в начале)
+        post_id (str): ID поста
 
     Returns:
-        str: Подтверждение или сообщение об ошибке.
+        str: Подтверждение установки.
     """
+    print(f"\n\n\n\n[set_post_by_id] Установка: owner_id={owner_id}, post_id={post_id}")
 
     def update_env(key: str, value: str):
         if ENV_PATH.exists():
@@ -210,26 +262,26 @@ def set_chat_from_url(url: str) -> str:
 
         new_lines = []
         found = False
-
         for line in lines:
             if line.startswith(f"{key}="):
                 new_lines.append(f"{key}={value}")
                 found = True
             else:
                 new_lines.append(line)
-
         if not found:
             new_lines.append(f"{key}={value}")
 
         ENV_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
         os.environ[key] = value
 
+    # Приводим к правильному формату
+    owner_id = str(owner_id).strip()
+    post_id = str(post_id).strip()
 
-    match = re.search(r"convo/(\d+)", url)
-    if not match:
-        return "Ошибка: не удалось распознать ссылку на чат. Ожидается формат: convo/XXXXXXXXX"
+    if not owner_id.startswith("-"):
+        owner_id = f"-{owner_id}"
 
-    peer_id = match.group(1)
-    update_env("VK_PEER_ID", peer_id)
+    update_env("VK_OWNER_ID", owner_id)
+    update_env("VK_POST_ID", post_id)
 
-    return f"Чат установлен:\nVK_PEER_ID = {peer_id}\n\nТеперь используйте /analyze"
+    return f"Пост установлен через ID:\nVK_OWNER_ID = {owner_id}\nVK_POST_ID = {post_id}\n\nТеперь другие агенты могут его анализировать."

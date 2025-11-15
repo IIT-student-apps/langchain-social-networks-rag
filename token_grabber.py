@@ -4,13 +4,6 @@ import os
 from pathlib import Path
 
 
-import asyncio
-from playwright.async_api import async_playwright
-import os
-from dotenv import load_dotenv
-from pathlib import Path
-
-
 ENV_FILE = "D:\RAG\langchain-social-networks-rag\.env"
 
 

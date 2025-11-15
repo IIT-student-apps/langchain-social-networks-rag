@@ -8,19 +8,21 @@ from typing import List
 llm = ChatOllama(model="qwen3:8b", temperature=0.0)
 
 class PlanOutput(BaseModel):
-    agents: List[str] = Field(description="Список агентов: ['chat_analyst', 'comment_analyst']")
+    agents: List[str] = Field(description="Список агентов: ['chat_analyst', 'comment_analyst', 'profile_analyst', 'post_analyst]")
     reason: str = Field(description="Почему выбраны эти агенты")
 
 parser = JsonOutputParser(pydantic_object=PlanOutput)
 
 orchestrator_prompt = ChatPromptTemplate.from_template("""
-Ты — умный оркестратор. Проанализируй запрос и выбери **только нужные** агенты.
+Ты — умный оркестратор. Проанализируй запрос и выбери только нужные агенты.
 
 Запрос: {user_query}
 
 Агенты:
-- chat_analyst — если нужно анализировать **переписку в чате**
-- comment_analyst — если нужно анализировать **комментарии под постом**
+- chat_analyst — если нужно анализировать переписку в чате
+- comment_analyst — если нужно анализировать комментарии под постом
+- profile_analyst - если нужно анализировать профиль (подписки) пользователя
+- post_analyst - если нужно анализировать реакции на посты. 
 
 Верни **ТОЛЬКО JSON**:
 {{

@@ -4,6 +4,7 @@ import os
 import sys
 import uuid
 import subprocess
+import re
 from telegram import Update, Document
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from langchain_utils import get_rag_chain
@@ -27,6 +28,8 @@ from pathlib import Path
 from vkapi import get_vk_post_reactions
 from posts import parse_vk_posts, posts_to_prompt
 from subscriptions import parse_vk_subscriptions, subscriptions_to_prompt
+from tools.vk_tools import set_post_from_url, set_chat_from_url
+
 
 from graph.workflow import app as analysis_graph
 
@@ -510,33 +513,40 @@ async def close_bot(update: Update, context: CallbackContext):
     sys.exit(0)
 
 
-from graph.workflow import app as analysis_graph
-"""
-async def analyze_vk(update: Update, context: CallbackContext):
-    query = " ".join(context.args) or "Проанализируй сообщество"
-    await update.message.reply_text("Анализирую VK-сообщество...")
 
-    try:
-        result = await analysis_graph.ainvoke({
-            "user_query": query,
-            "results": []
-        })
-        await update.message.reply_text(result["final_answer"], parse_mode="Markdown")
-    except Exception as e:
-        await update.message.reply_text(f"Ошибка: {str(e)}")
-"""
-def format_for_telegram(text: str) -> str:
-    """Заменяем Markdown на HTML для Telegram"""
-    text = text.replace("**", "<b>").replace("**", "</b>")  # жирный
-    text = text.replace("__", "<i>").replace("__", "</i>")  # курсив
-    text = text.replace("```", "<code>").replace("```", "</code>")  # код
-    text = text.replace("---", "—")  # разделитель
-    return text
+
 
 async def analyze_vk(update: Update, context: CallbackContext):
+    text = update.message.text
     query = " ".join(context.args) or "Проанализируй сообщество"
     await update.message.reply_text("Анализирую данные...")
 
+    url = None
+    url_match = re.search(r"wall(-?\d+)_(\d+)", query)     # пост
+    url2_match = re.search(r"convo\/(\d+)", query)         # беседа / диалог
+
+    # 1. Если нашли ссылку на пост VK
+    if url_match:
+        url = url_match.group(0)
+
+        try:
+            result = set_post_from_url.invoke({"url": url})
+            await update.message.reply_text(f"{result}\n\nАнализирую...")
+        except Exception as e:
+            await update.message.reply_text(f"Ошибка установки поста: {e}")
+            return
+
+    # 2. Если нашли ссылку на беседу VK
+    elif url2_match:
+        convo_id = url2_match.group(1)
+        try:
+            result = set_chat_from_url.invoke({"url": convo_id})
+            await update.message.reply_text(f"{result}\n\nАнализирую...")
+        except Exception as e:
+            await update.message.reply_text(f"Ошибка установки беседы: {e}")
+            return
+
+    # 3. Основной анализ
     try:
         result = await analysis_graph.ainvoke({
             "user_query": query,
@@ -544,11 +554,10 @@ async def analyze_vk(update: Update, context: CallbackContext):
         })
         
         final_answer = result["final_answer"]
-        final_answer = format_for_telegram(final_answer)
+        
 
-        # РАЗБИВАЕМ НА ЧАСТИ ПО 4000 символов
         max_length = 4000
-        parts = [final_answer[i:i+max_length] for i in range(0, len(final_answer), max_length)]
+        parts = [final_answer[i:i + max_length] for i in range(0, len(final_answer), max_length)]
 
         for i, part in enumerate(parts):
             prefix = f"**Часть {i+1}/{len(parts)}**\n\n" if len(parts) > 1 else ""

@@ -35,3 +35,27 @@ def detect_spam(text: str) -> str:
     """Находит спам и рекламу."""
     prompt = f"Найди спам, рекламу, ссылки без контекста. Формат: - Спам: ... . Запрещено придумывать самостоятельно.\n\n{text[:6000]}"
     return llm.invoke(prompt).content
+
+@tool
+def analyze_subs(text: str) -> str:
+    """Оценивает подписки пользователя."""
+    prompt = f"Сделай вывод об интересах пользователя, его увлечениях и т.д. исходя из сообществ, на которые он подписан.\n\n{text[:6000]}"
+    return llm.invoke(prompt).content
+
+@tool
+def analyze_likes(text: str) -> str:
+    """Оценивает реакции на посты."""
+    prompt = f"Сделай топ 3 самых залайканых постов. Формат: 1 место: ... и т.д.\n\n{text[:6000]}"
+    return llm.invoke(prompt).content
+
+@tool
+def analyze_comments(text: str) -> str:
+    """Оценивает количество комментариев на постах."""
+    prompt = f"Сделай топ 3 постов с самым большим количеством комментариев. Формат: 1 место: ... и т.д.\n\n{text[:6000]}"
+    return llm.invoke(prompt).content
+
+@tool
+def analyze_views(text: str) -> str:
+    """Оценивает количество просмотров на постах."""
+    prompt = f"Сделай топ 3 постов с самым большим количеством просмотров. Формат: 1 место: ... и т.д.\n\n{text[:6000]}"
+    return llm.invoke(prompt).content

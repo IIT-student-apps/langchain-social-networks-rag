@@ -2,8 +2,8 @@
 from langchain.agents import create_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_ollama import ChatOllama
-from tools.vk_tools import collect_comments, set_post_from_url
-from tools.llm_tools import find_questions, detect_spam
+from tools.vk_tools import collect_subscriptions
+from tools.llm_tools import analyze_subs
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from dotenv import load_dotenv
@@ -17,26 +17,24 @@ llm = ChatOllama(
 )
 
 prompt = "system", """
-Ты — аналитик комментариев VK.
+Ты — аналитик профилей в VK.
 Используй инструменты последовательно:
-1. set_post_from_url - обновить айди нужного поста, если пользователь указал ссылку на пост в запросе (если не указал - пропустить)
-2. collect_comments — собрать комментарии
-3. find_questions — найти вопросы
-4. detect_spam — найти спам
+1. collect_subscriptions — собрать подписки пользователя
+2. analyze_subs — проанализировать подписки пользователя
 
-Дай рекомендации в формате:
+Дай отчёт в формате:
 ---
-Вопросы: ...
-Спам: ...
-Рекомендация: ...
+Предположительные интересы: ...
+
+(Дополнительно) Возможно какие-либо интересные моменты. 
 ---
 ПРАВИЛА (НАРУШЕНИЕ = ОШИБКА):
 1. НЕ ПРИДУМЫВАЙ переписку, имена, сообщения
-2. ИСПОЛЬЗУЙ ТОЛЬКО то, что вернул инструмент collect_chat_history
+2. ИСПОЛЬЗУЙ ТОЛЬКО то, что вернул инструмент collect_subscriptions
     """
-comment_analyst = create_agent(
+profile_analyst = create_agent(
     llm,
-    tools=[set_post_from_url, collect_comments, find_questions, detect_spam],
+    tools=[collect_subscriptions, analyze_subs],
     system_prompt=prompt,
     
 )

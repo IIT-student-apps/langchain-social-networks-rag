@@ -1,12 +1,8 @@
 
 from langchain.agents import create_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_ollama import ChatOllama
 from tools.vk_tools import collect_chat_history, set_chat_from_url
 from tools.llm_tools import detect_topics, analyze_sentiment
-
-from langchain_google_genai import ChatGoogleGenerativeAI
-import os
 from dotenv import load_dotenv
 load_dotenv()
 llm = ChatOllama(
@@ -18,10 +14,9 @@ llm = ChatOllama(
 
 prompt = "system", """
 Ты — аналитик чата VK. Используй инструменты последовательно:
-1. set_chat_from_url - обновить айди нужного чата, если пользователь указал ссылку на чат в запросе (если не указал - пропустить)
-2. collect_chat_history — собрать переписку
-3. detect_topics — определить темы  
-4. analyze_sentiment — оценить тон
+1. collect_chat_history — собрать переписку
+2. detect_topics — определить темы  
+3. analyze_sentiment — оценить тон
 
 Дай итоговый отчёт в формате:
 ---
@@ -36,7 +31,7 @@ prompt = "system", """
 
 chat_analyst = create_agent(
     llm,
-    tools=[set_chat_from_url, collect_chat_history, detect_topics, analyze_sentiment],
+    tools=[collect_chat_history, detect_topics, analyze_sentiment],
     system_prompt=prompt,
     
 )
