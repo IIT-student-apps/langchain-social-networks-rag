@@ -52,7 +52,7 @@ def collect_chat_history(max_messages: int = 50) -> str:
 
 
 @tool
-def collect_comments(post_id: Optional[str] = None, max_comments: int = 30) -> str:
+def collect_comments(post_id: Optional[str] = None) -> str:
     """
     Собирает комментарии под постом VK.
 
@@ -60,7 +60,7 @@ def collect_comments(post_id: Optional[str] = None, max_comments: int = 30) -> s
 
     Args:
         post_id (str, optional): ID поста. Если не указан — берётся из .env (VK_POST_ID).
-        max_comments (int): Максимальное количество комментариев (по умолчанию 30).
+        
 
     Returns:
         str: Комментарии в формате:
@@ -72,6 +72,7 @@ def collect_comments(post_id: Optional[str] = None, max_comments: int = 30) -> s
              ...
              Если ошибка — сообщение об ошибке.
     """
+    max_comments = 10
     print("Использовал тул collect_comments")
     try:
         post_id = os.getenv("VK_POST_ID")
@@ -238,21 +239,22 @@ def set_chat_from_url(url: str) -> str:
     return f"Чат установлен:\nVK_PEER_ID = {peer_id}"
 
 
-@tool
-def set_post_by_id(owner_id: str, post_id: str) -> str:
-    """
-    Устанавливает VK_OWNER_ID и VK_POST_ID в .env по переданным ID.
 
-    Используется агентом постов для выбора "лучшего" поста.
+
+@tool
+def set_post_by_id(post_id: str) -> str:
+    """
+    Устанавливает VK_POST_ID в .env по переданному ID.
+
+    Используется агентом постов для выбора айди "лучшего" поста и записи в .env .
 
     Args:
-        owner_id (str): ID владельца (если группы, то с минусом в начале)
         post_id (str): ID поста
 
     Returns:
         str: Подтверждение установки.
     """
-    print(f"\n\n\n\n[set_post_by_id] Установка: owner_id={owner_id}, post_id={post_id}")
+    print(f"\n[set_post_by_id] Установка: post_id={post_id}")
 
     def update_env(key: str, value: str):
         if ENV_PATH.exists():
@@ -275,13 +277,16 @@ def set_post_by_id(owner_id: str, post_id: str) -> str:
         os.environ[key] = value
 
     # Приводим к правильному формату
-    owner_id = str(owner_id).strip()
     post_id = str(post_id).strip()
 
-    if not owner_id.startswith("-"):
-        owner_id = f"-{owner_id}"
-
-    update_env("VK_OWNER_ID", owner_id)
     update_env("VK_POST_ID", post_id)
 
-    return f"Пост установлен через ID:\nVK_OWNER_ID = {owner_id}\nVK_POST_ID = {post_id}\n\nТеперь другие агенты могут его анализировать."
+    # Для контекста можем вывести текущий owner_id, который уже есть в системе,
+    # чтобы LLM понимала, в рамках какой группы она работает (опционально)
+    current_owner = os.getenv("VK_OWNER_ID", "не задан")
+
+    return (
+        f"Пост успешно выбран.\n"
+        f"Текущий контекст: VK_OWNER_ID = {current_owner}, VK_POST_ID = {post_id}\n"
+        f"Теперь другие агенты могут анализировать этот пост."
+    )

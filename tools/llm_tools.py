@@ -1,11 +1,8 @@
 
 from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
-
-llm = ChatOllama(
-    model="qwen3:8b",
-    temperature=0.3
-)
+from llm_factory import get_llm
+llm = get_llm() 
 
 
 

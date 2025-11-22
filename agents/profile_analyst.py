@@ -6,15 +6,12 @@ from tools.vk_tools import collect_subscriptions
 from tools.llm_tools import analyze_subs
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
+from llm_factory import get_llm
 from dotenv import load_dotenv
 load_dotenv()
 
 
-llm = ChatOllama(
-    model="qwen3:8b",
-    temperature=0.0,    
-    top_p=0.1,          
-)
+llm = get_llm() 
 
 prompt = "system", """
 Ты — аналитик профилей в VK.

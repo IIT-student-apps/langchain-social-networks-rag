@@ -44,10 +44,12 @@ async def run_agents(state):
                 agent = post_analyst
             else:
                 continue
-
+            
+            
             print(f"Вызов агента {agent_name} с input: {state['user_query']}")
             result = await agent.ainvoke({
                 "input": state["user_query"],
+                
                 "agent_scratchpad": []
             })
             print(f"Результат: {result}")

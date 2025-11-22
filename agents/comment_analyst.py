@@ -7,16 +7,15 @@ from tools.llm_tools import find_questions, detect_spam
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
+from llm_factory import get_llm
+
 load_dotenv()
 
+llm = get_llm() 
 
-llm = ChatOllama(
-    model="qwen3:8b",
-    temperature=0.0,    
-    top_p=0.1,          
-)
 
-prompt = "system", """
+prompt = """
 Ты — аналитик комментариев VK.
 Используй инструменты последовательно:
 1. collect_comments — собрать комментарии
@@ -36,7 +35,7 @@ prompt = "system", """
     """
 comment_analyst = create_agent(
     llm,
-    tools=[set_post_from_url, collect_comments, find_questions, detect_spam],
+    tools=[collect_comments, find_questions, detect_spam],
     system_prompt=prompt,
     
 )

@@ -2,6 +2,8 @@ venv/
 .env
 rag_files/
 rag_app.db
-graph/__pycache__
-agents/__pycache__
-chroma_db/chroma.sqlite3
+graph\__pycache__
+agents\__pycache__
+chroma_db\chroma.sqlite3
+__pycache__
+tools\__pycache__

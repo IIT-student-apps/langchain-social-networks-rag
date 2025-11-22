@@ -4,8 +4,9 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from typing import List
+from llm_factory import get_llm
 
-llm = ChatOllama(model="qwen3:8b", temperature=0.0)
+llm = get_llm() 
 
 class PlanOutput(BaseModel):
     agents: List[str] = Field(description="Список агентов: ['chat_analyst', 'comment_analyst', 'profile_analyst', 'post_analyst]")

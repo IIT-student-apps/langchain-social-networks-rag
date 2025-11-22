@@ -3,13 +3,10 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 from tools.vk_tools import collect_chat_history, set_chat_from_url
 from tools.llm_tools import detect_topics, analyze_sentiment
+from llm_factory import get_llm
 from dotenv import load_dotenv
 load_dotenv()
-llm = ChatOllama(
-    model="qwen3:8b",
-    temperature=0.0,    
-    top_p=0.1,          
-)
+llm = get_llm() 
 
 
 prompt = "system", """
