@@ -13,7 +13,7 @@ load_dotenv()
 
 llm = get_llm() 
 
-prompt = "system", """
+prompt = """
 Ты — аналитик профилей в VK.
 Используй инструменты последовательно:
 1. collect_subscriptions — собрать подписки пользователя

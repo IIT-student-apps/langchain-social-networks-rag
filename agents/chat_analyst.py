@@ -9,7 +9,7 @@ load_dotenv()
 llm = get_llm() 
 
 
-prompt = "system", """
+prompt = """
 Ты — аналитик чата VK. Используй инструменты последовательно:
 1. collect_chat_history — собрать переписку
 2. detect_topics — определить темы  

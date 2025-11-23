@@ -52,7 +52,7 @@ def collect_chat_history(max_messages: int = 50) -> str:
 
 
 @tool
-def collect_comments(post_id: Optional[str] = None) -> str:
+def collect_comments(post_id: Optional[str] = None, max_comments: int = 10) -> str:
     """
     Собирает комментарии под постом VK.
 
@@ -72,7 +72,7 @@ def collect_comments(post_id: Optional[str] = None) -> str:
              ...
              Если ошибка — сообщение об ошибке.
     """
-    max_comments = 10
+    
     print("Использовал тул collect_comments")
     try:
         post_id = os.getenv("VK_POST_ID")
@@ -123,7 +123,10 @@ def collect_subscriptions() -> str:
 @tool
 def collect_posts(max_posts: int = 10) -> str:
     """Собирает последние посты с реакциями."""
+    print("Вызван тул collect_posts\n")
+    
     try:
+
         data = get_vk_post_reactions(
             owner_id=os.getenv("VK_OWNER_ID"),
             access_token=os.getenv("VK_ACCESS_TOKEN")
