@@ -1,6 +1,6 @@
 import os
 
-ACTIVE_MODEL = "groq_moonshotai" 
+ACTIVE_MODEL = "moonshotai/kimi-k2-instruct-0905" 
 
 LLM_CONFIGS = {
     "local_qwen3:8b": {
