@@ -56,37 +56,108 @@ Document Upload → Chroma Indexing → Vector DB → LLM QA Chain
 
 ```
 langchain-social-networks-rag/
-├── agents/                          # Специализированные агенты
-│   ├── post_analyst.py              # Анализ постов и реакций
-│   ├── comment_analyst.py           # Анализ комментариев
-│   ├── profile_analyst.py           # Анализ профилей и подписок
-│   └── chat_analyst.py              # Анализ чатов
-├── graph/                           # LangGraph оркестрация
-│   ├── workflow.py                  # State machine для агентов
-│   └── orchestrator.py              # Выбор агентов по запросу
-├── tools/                           # Инструменты для агентов
-│   ├── vk_tools.py                  # Обёртка VK API
-│   └── llm_tools.py                 # LLM-инструменты (анализ)
-├── api/                             # FastAPI REST API
-│   └── main.py                      # Эндпоинты чата и документов
-├── app/                             # Streamlit веб-интерфейс
-│   ├── streamlit_app.py             # Основное приложение
-│   ├── chat_interface.py            # Компонент чата
-│   └── sidebar.py                   # Боковое меню
-├── chroma_db/                       # Chroma Vector DB (embeddings)
-├── rag_files/                       # Загруженные документы
-├── langchain_utils.py               # RAG цепочка (retriever + LLM)
-├── chroma_utils.py                  # Операции с Chroma DB
-├── db_utils.py                      # SQLite операции (история, логи)
-├── llm_factory.py                   # Фабрика для создания LLM
-├── config.py                        # Конфигурация моделей
-├── vkapi.py                         # Прямые VK API вызовы
-├── tg.py                            # Telegram bot интерфейс
-├── main.py                          # CLI entry point
-├── pydantic_models.py               # Схемы данных
-├── requirements.txt                 # Python зависимости
-├── rag_app.db                       # SQLite база данных
-└── README.md                        # Этот файл
+├── src/                              # Исходный код приложения
+│   ├── core/                         # Основные модули и утилиты
+│   │   ├── __init__.py
+│   │   ├── config.py                 # Конфигурация LLM моделей
+│   │   ├── llm_factory.py            # Фабрика для создания LLM
+│   │   ├── models.py                 # VK API data models (consolidated)
+│   │   │   ├── Message, Conversation # Сообщения чата
+│   │   │   ├── Comment, CommentThread # Комментарии под постами
+│   │   │   ├── Post, PostList        # Посты с реакциями
+│   │   │   └── Group, SubscriptionList # Подписки пользователя
+│   │   ├── db_utils.py               # SQLite операции (логи, история)
+│   │   ├── chroma_utils.py           # Операции с Chroma Vector DB
+│   │   ├── langchain_utils.py        # RAG цепочка (retriever + LLM)
+│   │   └── pydantic_models.py        # API Pydantic схемы
+│   │
+│   ├── integrations/                 # Интеграции с внешними сервисами
+│   │   ├── __init__.py
+│   │   ├── vk_client.py              # VK API клиент (прямые вызовы)
+│   │   └── telegram_bot.py           # Telegram Bot интерфейс
+│   │
+│   ├── agents/                       # Специализированные агенты анализа
+│   │   ├── __init__.py
+│   │   ├── post_analyst.py           # Анализ постов и реакций
+│   │   ├── comment_analyst.py        # Анализ комментариев
+│   │   ├── profile_analyst.py        # Анализ профилей и подписок
+│   │   └── chat_analyst.py           # Анализ чатов
+│   │
+│   ├── tools/                        # Инструменты для агентов
+│   │   ├── __init__.py
+│   │   ├── vk_tools.py               # VK API инструменты (7 tools)
+│   │   └── llm_tools.py              # LLM анализ инструменты (8 tools)
+│   │
+│   ├── graph/                        # LangGraph оркестрация
+│   │   ├── __init__.py
+│   │   ├── orchestrator.py           # Выбор агентов по запросу
+│   │   └── workflow.py               # Multi-agent State Machine
+│   │
+│   ├── app/                          # Streamlit веб-интерфейс
+│   │   ├── __init__.py
+│   │   ├── streamlit_app.py          # Основное приложение
+│   │   ├── chat_interface.py         # Компонент чата
+│   │   ├── sidebar.py                # Боковое меню
+│   │   └── api_utils.py              # Утилиты для API
+│   │
+│   ├── api/                          # FastAPI REST API
+│   │   ├── __init__.py
+│   │   └── server.py                 # API endpoints (chat, upload-doc, list-docs, delete-doc)
+│   │
+│   └── __init__.py
+│
+├── data/                             # Данные (не коммитятся)
+│   ├── chroma_db/                    # Chroma Vector DB (embeddings)
+│   └── rag_files/                    # Загруженные документы (PDF, DOCX, HTML)
+│
+├── database/                         # База данных
+│   └── rag_app.db                    # SQLite (логи, история, метаданные)
+│
+├── scripts/                          # Вспомогательные скрипты
+│   └── token_grabber.py              # VK токен автоматизация (Playwright)
+│
+├── .env                              # Переменные окружения (не коммитятся)
+├── .gitignore
+├── config.py                         # ⚠️ Устарело - используйте src/core/config.py
+├── requirements.txt                  # Python зависимости
+├── main.py                           # 🎯 CLI entry point (интерактивный чат)
+├── README.md                         # Этот файл
+└── tg.py                             # ⚠️ Устарело - используйте src/integrations/telegram_bot.py
+```
+
+### Иерархия импортов (от низкого к высокому уровню)
+
+```
+Layer 1: Core Utilities (No dependencies)
+  ├── src/core/config.py
+  ├── src/core/models.py
+  ├── src/core/pydantic_models.py
+  └── src/core/db_utils.py
+
+Layer 2: LLM & Vector DB
+  ├── src/core/llm_factory.py → config
+  ├── src/core/chroma_utils.py
+  └── src/core/langchain_utils.py
+
+Layer 3: API Integrations
+  └── src/integrations/vk_client.py → models
+
+Layer 4: Tools & Wrappers
+  ├── src/tools/vk_tools.py → vk_client + models
+  └── src/tools/llm_tools.py → llm_factory
+
+Layer 5: Agents
+  └── src/agents/*.py → tools + llm_factory
+
+Layer 6: Orchestration
+  ├── src/graph/orchestrator.py → llm_factory
+  └── src/graph/workflow.py → agents + orchestrator
+
+Layer 7: Applications
+  ├── src/api/server.py → core utils
+  ├── src/app/*.py → (self-contained)
+  ├── src/integrations/telegram_bot.py → all layers
+  └── main.py → core utils
 ```
 
 ---
@@ -127,7 +198,7 @@ ollama pull denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m
 ollama pull qwen3:8b
 ```
 
-#### 3. Настройка переменных окружения
+#### 4. Настройка переменных окружения
 Создайте файл `.env` в корневой папке:
 ```env
 # LLM API ключи
@@ -145,30 +216,34 @@ VK_COUNT=number_of_messages
 
 # Telegram Bot
 TELEGRAM_TOKEN=your_telegram_bot_token
+
+# Database paths (optional)
+DB_PATH=database/rag_app.db
+CHROMA_DB_PATH=data/chroma_db
 ```
 
-#### 4. Запуск FastAPI сервера
+#### 5. Запуск FastAPI сервера
 ```bash
-cd api
-uvicorn main:app --reload
+cd src/api
+uvicorn server:app --reload
 ```
 API доступен на `http://127.0.0.1:8000`
 
-#### 5. Запуск интерфейса (выберите один)
-
-**Streamlit Web UI:**
-```bash
-streamlit run app/streamlit_app.py
-```
-
-**Telegram Bot:**
-```bash
-python tg.py
-```
+#### 6. Запуск интерфейса (выберите один)
 
 **CLI интерактивный чат:**
 ```bash
 python main.py
+```
+
+**Streamlit Web UI:**
+```bash
+streamlit run src/app/streamlit_app.py
+```
+
+**Telegram Bot:**
+```bash
+python src/integrations/telegram_bot.py
 ```
 
 ---
@@ -197,14 +272,18 @@ pip install -r requirements.txt
 
 #### 5. Запуск FastAPI
 ```bash
-cd api
-uvicorn main:app --reload
+cd src/api
+uvicorn server:app --reload
 ```
 
 #### 6. Запуск интерфейса (в отдельной сессии)
 ```bash
 source venv/bin/activate
-python3 tg.py  # или streamlit run ../app/streamlit_app.py
+python3 main.py  # CLI
+# или
+streamlit run src/app/streamlit_app.py  # Web UI
+# или
+python3 src/integrations/telegram_bot.py  # Telegram Bot
 ```
 
 ---
@@ -260,9 +339,50 @@ curl -X DELETE "http://127.0.0.1:8000/delete-doc" \
 
 ---
 
+---
+
+## 🔄 Миграция проекта (v0.1)
+
+**Старая структура → Новая структура**
+
+| Старо | Ново | Причина |
+|-------|------|---------|
+| `conversation.py` | `src/core/models.py` | Консолидация VK data models |
+| `comments.py` | `src/core/models.py` | Консолидация VK data models |
+| `posts.py` | `src/core/models.py` | Консолидация VK data models |
+| `subscriptions.py` | `src/core/models.py` | Консолидация VK data models |
+| `config.py` | `src/core/config.py` | Переместить в core |
+| `llm_factory.py` | `src/core/llm_factory.py` | Переместить в core |
+| `langchain_utils.py` | `src/core/langchain_utils.py` | Переместить в core |
+| `chroma_utils.py` | `src/core/chroma_utils.py` | Переместить в core |
+| `db_utils.py` | `src/core/db_utils.py` | Переместить в core |
+| `pydantic_models.py` | `src/core/pydantic_models.py` | Переместить в core |
+| `vkapi.py` | `src/integrations/vk_client.py` | Переместить в integrations |
+| `tg.py` | `src/integrations/telegram_bot.py` | Переместить в integrations |
+| `api/main.py` | `src/api/server.py` | Переместить в src/api |
+| `agents/` | `src/agents/` | Переместить в src |
+| `tools/` | `src/tools/` | Переместить в src |
+| `graph/` | `src/graph/` | Переместить в src |
+| `app/` | `src/app/` | Переместить в src |
+| `chroma_db/` | `data/chroma_db/` | Разделить код и данные |
+| `rag_files/` | `data/rag_files/` | Разделить код и данные |
+| `rag_app.db` | `database/rag_app.db` | Разделить код и данные |
+| `main.py` | `main.py` + `src/api/server.py` | Разделить CLI и API |
+| `token_grabber.py` | `scripts/token_grabber.py` | Переместить вспомогательные скрипты |
+
+### Преимущества новой структуры
+
+✅ **Модульность** - Четкое разделение кода, интеграций и приложений  
+✅ **Масштабируемость** - Легко добавлять новых агентов, инструментов, интеграций  
+✅ **Maintainability** - Понятная иерархия импортов, меньше circular dependencies  
+✅ **Data/Code separation** - Папка `data/` и `database/` изолированы  
+✅ **CLI + API** - `main.py` для интерактивного использования, `server.py` для production  
+
+---
+
 ## 🔧 Конфигурация
 
-### `config.py` — Выбор LLM модели
+### `src/core/config.py` — Выбор LLM модели
 
 ```python
 ACTIVE_MODEL = "groq_moonshotai"  # или "groq_qwen", "local_qwen3:8b"
@@ -284,23 +404,24 @@ LLM_CONFIGS = {
 }
 ```
 
-### `langchain_utils.py` — RAG параметры
+### `src/core/langchain_utils.py` — RAG параметры
 
 ```python
 CHUNK_SIZE = 1000              # Размер чанка документа (токены)
 CHUNK_OVERLAP = 200            # Перекрытие между чанками
 EMBEDDING_MODEL = "ollama"     # Provider for embeddings
+CHROMA_DB_PATH = "data/chroma_db"  # Vector DB path
 ```
 
 ---
 
 ## 🗄️ База данных
 
-**SQLite** (`rag_app.db`):
+**SQLite** (`database/rag_app.db`):
 - `application_logs` — логи запросов, ответы моделей, метаданные
 - `document_store` — загруженные файлы и метаданные
 
-**Chroma Vector DB** (`./chroma_db/`):
+**Chroma Vector DB** (`data/chroma_db/`):
 - Хранит embeddings документов с метаданными (filename, file_id)
 - Используется для поиска релевантных фрагментов по запросу
 

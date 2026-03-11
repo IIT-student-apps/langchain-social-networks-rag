@@ -1,0 +1,40 @@
+
+from langchain.agents import create_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_ollama import ChatOllama
+from ..tools.vk_tools import collect_comments, set_post_from_url
+from ..tools.llm_tools import find_questions, detect_spam
+from langchain_google_genai import ChatGoogleGenerativeAI
+import os
+from dotenv import load_dotenv
+from ..core.llm_factory import get_llm
+
+load_dotenv()
+
+llm = get_llm() 
+
+
+prompt = """
+Ты — аналитик комментариев VK.
+Используй инструменты последовательно:
+1. collect_comments — собрать комментарии
+2. find_questions — найти вопросы
+3. detect_spam — найти спам
+
+Дай рекомендации в формате:
+---
+Вопросы: ...
+Спам: ...
+Рекомендация: ...
+---
+ПРАВИЛА (НАРУШЕНИЕ = ОШИБКА):
+1. НЕ ПРИДУМЫВАЙ комментарии, имена, сообщения
+2. ИСПОЛЬЗУЙ ТОЛЬКО то, что вернул инструмент collect_comments
+
+    """
+comment_analyst = create_agent(
+    llm,
+    tools=[collect_comments, find_questions, detect_spam],
+    system_prompt=prompt,
+    
+)

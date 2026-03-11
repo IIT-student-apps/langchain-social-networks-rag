@@ -1,11 +1,44 @@
+# Virtual environment
 venv/
+env/
+.venv
+
+# Environment variables
 .env
-rag_files/
-rag_app.db
-graph\__pycache__
-agents\__pycache__
-chroma_db\chroma.sqlite3
-__pycache__
-tools\__pycache__
-chroma_db/chroma.sqlite3
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Data directories (DO NOT commit)
+data/
+database/
+*.db
+
+# Chroma vector store
+*/chroma.sqlite3
+*.chroma
+
+# Temporary files
+temp_*
+*.tmp
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
 

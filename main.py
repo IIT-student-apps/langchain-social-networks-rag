@@ -1,76 +1,78 @@
-# api/main.py
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-import uuid
-import logging
-import shutil
+#!/usr/bin/env python3
+"""
+RAG Social Networks Intelligence Platform - CLI Entry Point
+"""
 import os
+import sys
+from pathlib import Path
 
-from langchain_utils import get_rag_chain
-from db_utils import (
-    insert_application_logs, get_chat_history,
-    insert_document_record, delete_document_record, get_all_documents
-)
-from chroma_utils import index_document_to_chroma, delete_doc_from_chroma
+# Ensure src is in path
+sys.path.insert(0, str(Path(__file__).parent))
 
-app = FastAPI(title="VK Social RAG API")
+from dotenv import load_dotenv
+from src.core.db_utils import get_chat_history, insert_application_logs
+from src.core.langchain_utils import get_rag_chain
+import uuid
 
-class QueryInput(BaseModel):
-    question: str
-    session_id: Optional[str] = None
-    model: str = "qwen3:8b"
+load_dotenv()
 
-class QueryResponse(BaseModel):
-    answer: str
-    session_id: str
 
-@app.post("/chat", response_model=QueryResponse)
-def chat(query: QueryInput):
-    session_id = query.session_id or str(uuid.uuid4())
-    logging.info(f"Session {session_id} | Question: {query.question}")
-
-    chain = get_rag_chain()
+def main():
+    """Interactive CLI for RAG system"""
+    print("=" * 60)
+    print("🤖 RAG Social Networks Intelligence Platform")
+    print("=" * 60)
+    print("\nWelcome! Type 'quit' to exit, 'help' for commands.\n")
+    
+    session_id = str(uuid.uuid4())
+    print(f"📊 Session ID: {session_id}\n")
+    
+    rag_chain = get_rag_chain()
     chat_history = get_chat_history(session_id)
+    
+    while True:
+        try:
+            user_input = input("You: ").strip()
+            
+            if user_input.lower() in ['quit', 'exit', 'q']:
+                print("\n👋 Goodbye!")
+                break
+            
+            if user_input.lower() == 'help':
+                print("""
+Available commands:
+  quit/exit/q  - Exit the application
+  help         - Show this help message
+  
+Ask any question about loaded documents or VK social network analysis!
+                """)
+                continue
+            
+            if not user_input:
+                continue
+            
+            print("\n⏳ Processing...")
+            
+            result = rag_chain.invoke({
+                "input": user_input,
+                "chat_history": chat_history
+            })
+            
+            answer = result.get("answer", "No response generated.")
+            print(f"\n🤖 Assistant: {answer}\n")
+            
+            # Log to database
+            insert_application_logs(session_id, user_input, answer, "cli")
+            
+            # Update chat history
+            chat_history = get_chat_history(session_id)
+            
+        except KeyboardInterrupt:
+            print("\n\n👋 Interrupted. Goodbye!")
+            break
+        except Exception as e:
+            print(f"\n❌ Error: {str(e)}\n")
 
-    result = chain.invoke({
-        "input": query.question,
-        "chat_history": chat_history
-    })
 
-    answer = result["answer"]
-    insert_application_logs(session_id, query.question, answer, query.model)
-
-    return QueryResponse(answer=answer, session_id=session_id)
-
-@app.post("/upload-doc")
-async def upload(file: UploadFile = File(...)):
-    if not file.filename.endswith(('.pdf', '.docx', '.html')):
-        raise HTTPException(400, "Only .pdf, .docx, .html allowed")
-
-    temp_path = f"temp_{file.filename}"
-    with open(temp_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    try:
-        file_id = insert_document_record(file.filename)
-        success = index_document_to_chroma(temp_path, file_id)
-        if not success:
-            delete_document_record(file_id)
-            raise HTTPException(500, "Failed to index")
-        return {"message": "Uploaded", "file_id": file_id}
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-
-@app.get("/list-docs")
-def list_docs():
-    return get_all_documents()
-
-@app.post("/delete-doc")
-def delete_doc(request: dict):
-    file_id = request.get("file_id")
-    if not delete_doc_from_chroma(file_id):
-        return {"error": "Chroma delete failed"}
-    delete_document_record(file_id)
-    return {"message": "Deleted"}
+if __name__ == "__main__":
+    main()
