@@ -1,7 +1,9 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
-from ...core.llm_factory import get_llm
+from src.core.llm_factory import get_llm
 
 llm = get_llm()
 

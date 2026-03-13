@@ -1,22 +1,26 @@
 # src/core/langchain_utils.py
-from langchain_ollama import OllamaEmbeddings, ChatOllama
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough
 from langchain_classic.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 import os
+from src.core.llm_factory import get_llm, get_embeddings
 
 # Векторная БД
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "data/chroma_db")
 vectorstore = Chroma(
     persist_directory=CHROMA_DB_PATH,
-    embedding_function=OllamaEmbeddings(model="denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m:latest")
+    embedding_function=get_embeddings()
 )
 retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 
-# LLM
-llm = ChatOllama(model="qwen3:8b")
+# LLM из конфига
+llm = get_llm()
 
 # Контекстуализация
 contextualize_q_system_prompt = (

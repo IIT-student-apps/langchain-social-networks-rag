@@ -1,10 +1,13 @@
 # graph/orchestrator.py
-from langchain_ollama import ChatOllama
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from typing import List
-from ..core.llm_factory import get_llm
+from src.core.llm_factory import get_llm
 
 llm = get_llm()
 

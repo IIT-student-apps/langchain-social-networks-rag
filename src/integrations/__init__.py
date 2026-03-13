@@ -1,5 +1,5 @@
 """Integration modules - VK API and other integrations"""
-from .vk_client import (
+from src.integrations.vk_client import (
     get_vk_chat_history,
     get_vk_post_reactions,
     get_vk_subscriptions,

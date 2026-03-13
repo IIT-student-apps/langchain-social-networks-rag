@@ -1,19 +1,22 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from langchain_core.tools import tool
 import os
 import re
 from typing import Optional
-from pathlib import Path
 from dotenv import load_dotenv
 
-from ...integrations.vk_client import get_vk_chat_history, get_vk_q_and_a, get_vk_subscriptions, get_vk_post_reactions 
-from ...core.models import (
+from src.integrations.vk_client import get_vk_chat_history, get_vk_q_and_a, get_vk_subscriptions, get_vk_post_reactions 
+from src.core.models import (
     parse_vk_messages, conversation_to_prompt,
     parse_vk_comments, comments_to_prompt,
     parse_vk_subscriptions, subscriptions_to_prompt,
     parse_vk_posts, posts_to_prompt
 )
 
-ENV_PATH = Path(".env")
+ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv()
 
 

@@ -1,8 +1,11 @@
 import streamlit as st
-from .api_utils import get_api_response
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from src.core.config import LLM_CONFIGS, ACTIVE_MODEL
+from src.app.api_utils import get_api_response
 
-MODELS={"yandexGPT":"denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m:latest", "gpt-4o":"gpt-4o",\
-         "gpt-4o-mini":"gpt-4o-mini", "llama3":"llama3:latest"}
+MODELS = {key: cfg["model"] for key, cfg in LLM_CONFIGS.items()}
 
 def display_chat_interface():
     # Chat interface

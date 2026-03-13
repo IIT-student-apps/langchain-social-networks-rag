@@ -1,12 +1,14 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from langchain.agents import create_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_ollama import ChatOllama
-from ..tools.vk_tools import collect_posts, set_post_by_id
-from ..tools.llm_tools import analyze_comments, analyze_likes, analyze_views
-from langchain_google_genai import ChatGoogleGenerativeAI
-from ..core.llm_factory import get_llm
 import os
 from dotenv import load_dotenv
+from src.tools.vk_tools import collect_posts, set_post_by_id
+from src.tools.llm_tools import analyze_comments, analyze_likes, analyze_views
+from src.core.llm_factory import get_llm
 load_dotenv()
 
 

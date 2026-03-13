@@ -13,12 +13,17 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from dotenv import load_dotenv
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+GETTOKEN_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "token_grabber.py"
+
+load_dotenv(PROJECT_ROOT / ".env")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+from src.core.db_utils import get_chat_history
 from src.core.langchain_utils import get_rag_chain
 from src.core.chroma_utils import index_document_to_chroma as index_document
 from src.core.chroma_utils import list_indexed_files
 from src.core.chroma_utils import delete_doc_from_chroma
-from dotenv import load_dotenv
-from src.core.db_utils import get_chat_history
 from src.core.db_utils import insert_application_logs, get_chat_history
 from src.core.db_utils import get_all_sessions_for_user  
 from src.core.db_utils import delete_chat_history
@@ -36,25 +41,17 @@ from src.graph.workflow import app as analysis_graph
 
 ADMIN_ID = 909658267
 
-GETTOKEN_SCRIPT_PATH = "token_grabber.py"
 
-load_dotenv()
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.dirname(CURRENT_DIR)
-DOWNLOAD_FOLDER = os.path.join(BASE_DIR, "rag_files")
+DOWNLOAD_FOLDER = PROJECT_ROOT / "rag_files"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+ENV_PATH = PROJECT_ROOT / ".env"
 
 rag_chain = get_rag_chain()
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
 user_sessions = {}
-
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
 
 
 async def chat(update: Update, context: CallbackContext):

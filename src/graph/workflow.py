@@ -1,13 +1,17 @@
 # graph/workflow.py
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
-from ..agents.chat_analyst import chat_analyst
-from ..agents.comment_analyst import comment_analyst
-from ..agents.profile_analyst import profile_analyst
-from .orchestrator import orchestrator_chain
-from ..agents.post_analyst import post_analyst
 from langchain_core.messages import HumanMessage, AIMessage
 from dotenv import load_dotenv
+from src.agents.chat_analyst import chat_analyst
+from src.agents.comment_analyst import comment_analyst
+from src.agents.profile_analyst import profile_analyst
+from src.graph.orchestrator import orchestrator_chain
+from src.agents.post_analyst import post_analyst
 load_dotenv()
 class AgentState(TypedDict):
     user_query: str

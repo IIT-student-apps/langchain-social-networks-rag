@@ -1,9 +1,11 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from langchain.agents import create_agent
-from langchain_ollama import ChatOllama
-from ..tools.vk_tools import collect_chat_history, set_chat_from_url
-from ..tools.llm_tools import detect_topics, analyze_sentiment
-from ..core.llm_factory import get_llm
+from src.tools.vk_tools import collect_chat_history, set_chat_from_url
+from src.tools.llm_tools import detect_topics, analyze_sentiment
+from src.core.llm_factory import get_llm
 from dotenv import load_dotenv
 load_dotenv()
 llm = get_llm() 

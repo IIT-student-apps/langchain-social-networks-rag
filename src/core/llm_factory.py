@@ -1,8 +1,12 @@
 # llm_factory.py
-from langchain_ollama import ChatOllama
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
-from . import config
+import src.core.config as config
 
 def get_llm():
     # Получаем настройки активной модели
@@ -29,3 +33,6 @@ def get_llm():
     
     else:
         raise ValueError(f"Неизвестный провайдер LLM: {provider}")
+
+def get_embeddings() -> OllamaEmbeddings:
+    return OllamaEmbeddings(model=config.EMBEDDING_MODEL)

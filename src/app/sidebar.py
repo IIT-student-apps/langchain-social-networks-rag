@@ -1,10 +1,15 @@
 import streamlit as st
-from .api_utils import upload_document, list_documents, delete_document
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from src.core.config import LLM_CONFIGS, ACTIVE_MODEL
+from src.app.api_utils import upload_document, list_documents, delete_document
 
 def display_sidebar():
     # Sidebar: Model Selection
-    model_options = ["yandexGPT", "gpt-4o", "gpt-4o-mini", "llama3"]
-    st.sidebar.selectbox("Модель", options=model_options, key="model")
+    model_options = list(LLM_CONFIGS.keys())
+    default_index = model_options.index(ACTIVE_MODEL) if ACTIVE_MODEL in model_options else 0
+    st.sidebar.selectbox("Модель", options=model_options, index=default_index, key="model")
     
 
     # Sidebar: Upload Document

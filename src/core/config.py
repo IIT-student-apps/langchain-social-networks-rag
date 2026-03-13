@@ -1,6 +1,7 @@
 import os
 
-ACTIVE_MODEL = "moonshotai/kimi-k2-instruct-0905" 
+ACTIVE_MODEL = "groq_qwen"
+EMBEDDING_MODEL = "nomic-embed-text"  # локальная Ollama-модель для векторизации
 
 LLM_CONFIGS = {
     "local_qwen3:8b": {

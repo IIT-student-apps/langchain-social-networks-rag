@@ -1,6 +1,10 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import streamlit as st
-from .sidebar import display_sidebar
-from .chat_interface import display_chat_interface
+from src.app.sidebar import display_sidebar
+from src.app.chat_interface import display_chat_interface
 
 st.title("RAG помошник")
 

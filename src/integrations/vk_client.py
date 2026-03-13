@@ -1,9 +1,13 @@
 """VK API Client - Direct VK API calls"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import requests
 import json
 import os
 from dotenv import load_dotenv
-from ..core.models import parse_vk_messages
+from src.core.models import parse_vk_messages
 
 load_dotenv(override=True)
 

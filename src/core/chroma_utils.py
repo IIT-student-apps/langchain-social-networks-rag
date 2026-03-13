@@ -1,14 +1,18 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, UnstructuredHTMLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 from typing import List
 from langchain_core.documents import Document
 import os
+from src.core.llm_factory import get_embeddings
 
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
-embedding_function = OllamaEmbeddings(model="denisavetisyan/saiga_yandexgpt_8b_gguf_q5_k_m:latest")
+embedding_function = get_embeddings()
 
 # Use data/chroma_db directory for vector store
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "data/chroma_db")

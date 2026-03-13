@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 
-ENV_FILE = "D:\RAG\langchain-social-networks-rag\.env"
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 def update_env_file(key, value):
